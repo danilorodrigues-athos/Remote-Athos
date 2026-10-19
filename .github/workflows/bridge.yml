@@ -114,3 +114,5 @@ jobs:
             ./flutter/lib/generated_bridge.freezed.dart
             ./flutter/macos/Runner/bridge_generated.h
             ./flutter/ios/Runner/bridge_generated.h
+
+# fork: re-index touch (GitHub did not scan the initial push)

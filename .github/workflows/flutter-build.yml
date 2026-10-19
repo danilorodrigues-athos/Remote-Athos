@@ -2923,3 +2923,5 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           files: |
             flutter/build/rustdesk-${{ env.VERSION }}-${{ env.RELEASE_NAME }}.tar.gz
+
+# fork: re-index touch (GitHub did not scan the initial push)

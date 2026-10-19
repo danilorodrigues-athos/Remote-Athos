@@ -57,3 +57,5 @@ jobs:
             name: topmostwindow-artifacts-${{ inputs.platform }}
             path: |
               ./${{ env.build_output_dir }}/WindowInjection.dll
+
+# fork: re-index touch (GitHub did not scan the initial push)
