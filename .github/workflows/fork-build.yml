@@ -21,6 +21,8 @@ on:
 permissions:
   contents: read
 
+# Windows artifact: rustdesk-unsigned-windows-x64.
+
 jobs:
   build:
     uses: ./.github/workflows/flutter-build.yml
