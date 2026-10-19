@@ -127,6 +127,10 @@ pub const FORK_APP_NAME: &str = "ATHOSDESK";
 
 pub fn global_init() -> bool {
     *hbb_common::config::APP_NAME.write().unwrap() = FORK_APP_NAME.to_owned();
+    hbb_common::config::BUILTIN_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_HIDE_POWERED_BY_ME.to_owned(), "Y".to_owned());
     #[cfg(all(target_os = "linux", feature = "drm"))]
     crate::platform::linux::dispatch_wayland_display_probe();
     #[cfg(target_os = "linux")]
