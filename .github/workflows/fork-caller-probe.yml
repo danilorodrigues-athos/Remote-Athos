@@ -1,0 +1,11 @@
+name: Fork caller probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    uses: ./.github/workflows/fork-reusable-probe.yml
+    secrets: inherit
+    with:
+      upload-artifact: true

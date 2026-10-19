@@ -1,0 +1,14 @@
+name: Fork reusable probe
+
+on:
+  workflow_call:
+    inputs:
+      upload-artifact:
+        type: boolean
+        default: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "reusable probe ran; upload-artifact=${{ inputs.upload-artifact }}"
