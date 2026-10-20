@@ -13,6 +13,7 @@ import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
+import 'package:flutter_hbb/desktop/widgets/client_catalog.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
@@ -77,7 +78,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           Expanded(
             child: _railIndex == 0
                 ? _buildHome(context)
-                : _buildPeersPane(context),
+                : _railIndex == 4
+                    ? const ClientsCatalogView()
+                    : _buildPeersPane(context),
           ),
         ],
       ),
@@ -120,6 +123,13 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             tooltip: translate('Address book'),
             selected: _railIndex == 3,
             onTap: () => _openPeerTab(3, 3),
+          ),
+          _railButton(
+            context,
+            icon: Icons.groups_rounded,
+            tooltip: 'Clientes',
+            selected: _railIndex == 4,
+            onTap: () => setState(() => _railIndex = 4),
           ),
           const Spacer(),
           _railButton(
