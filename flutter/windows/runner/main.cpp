@@ -158,11 +158,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   Win32Desktop::GetWorkArea(workarea_origin, workarea_size);
 
-  // Compute window bounds for default main window position: (10, 10) x(800, 600)
+  // Compute window bounds for default main window position: (10, 10) x(1120, 720)
   Win32Window::Point relative_origin(10, 10);
 
   Win32Window::Point origin(workarea_origin.x + relative_origin.x, workarea_origin.y + relative_origin.y);
-  Win32Window::Size size(800u, 600u);
+  Win32Window::Size size(1120u, 720u);
 
   // Fit the window to the monitor's work area.
   Win32Desktop::FitToWorkArea(origin, size);
