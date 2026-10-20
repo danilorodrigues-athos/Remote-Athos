@@ -67,7 +67,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     }
     return _buildBlock(
         child: Container(
-      color: Theme.of(context).colorScheme.background,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF111827)
+          : const Color(0xFFF3F3F3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
