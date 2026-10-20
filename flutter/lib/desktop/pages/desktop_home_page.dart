@@ -21,7 +21,6 @@ import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:flutter_hbb/utils/platform_channel.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart' as window_size;
@@ -413,55 +412,16 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFE1E1E1)),
-                      ),
-                      child: model.serverId.text.isEmpty
-                          ? const SizedBox(width: 108, height: 108)
-                          : QrImageView(
-                              data: model.serverId.text,
-                              version: QrVersions.auto,
-                              size: 108,
-                              padding: EdgeInsets.zero,
-                              backgroundColor: Colors.white,
-                              gapless: true,
-                            ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Conectar pelo celular',
-                            style: TextStyle(
-                                fontSize: 13.5, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Abra o ATHOSDESK no celular e escaneie o código.',
-                            style: TextStyle(fontSize: 11.5, color: muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
+                const SizedBox(height: 18),
                 Divider(height: 1, color: muted?.withOpacity(0.3)),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _tipRow(context, Icons.wifi_tethering_rounded,
                     'Ative o acesso por IP para conectar sem internet.'),
                 _tipRow(context, Icons.lock_outline_rounded,
                     'Defina uma senha permanente em Configurações > Segurança.'),
-                const SizedBox(height: 10),
+                _tipRow(context, Icons.computer_rounded,
+                    'Informe este ID na máquina que vai controlar este computador.'),
+                const Spacer(),
                 OnlineStatusWidget(),
               ],
             ),
