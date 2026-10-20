@@ -1,4 +1,4 @@
-name: Flutter Analyze
+﻿name: Flutter Analyze
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       paths:
         description: "Space separated Dart paths (relative to flutter/)"
         required: false
-        default: "lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/connection_page.dart"
+        default: "lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/connection_page.dart lib/desktop/widgets/client_catalog.dart"
 
 jobs:
   analyze:
