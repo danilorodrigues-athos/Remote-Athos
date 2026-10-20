@@ -226,14 +226,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               return Column(
                 children: [
                   if (!isOutgoingOnly)
-                    SizedBox(height: 500, child: _buildDeviceCard(context)),
+                    SizedBox(height: 360, child: _buildDeviceCard(context)),
                   if (!isOutgoingOnly) const SizedBox(height: 16),
-                  SizedBox(height: 500, child: buildRightPane(context)),
+                  SizedBox(height: 480, child: buildRightPane(context)),
                 ],
               );
             }
             return SizedBox(
-              height: 524,
+              height: 400,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
