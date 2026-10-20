@@ -323,6 +323,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                         controller: model.serverId,
                         readOnly: true,
                         decoration: const InputDecoration(
+                          filled: false,
                           border: InputBorder.none,
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
@@ -423,11 +424,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                         border: Border.all(color: const Color(0xFFE1E1E1)),
                       ),
                       child: model.serverId.text.isEmpty
-                          ? const SizedBox(width: 92, height: 92)
+                          ? const SizedBox(width: 108, height: 108)
                           : QrImageView(
                               data: model.serverId.text,
                               version: QrVersions.auto,
-                              size: 92,
+                              size: 108,
                               padding: EdgeInsets.zero,
                               backgroundColor: Colors.white,
                               gapless: true,
@@ -1019,15 +1020,16 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               0, marginTop, 0, bind.isIncomingOnly() ? marginTop : 0),
           child: Container(
               decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Color.fromARGB(255, 226, 66, 188),
-                  Color.fromARGB(255, 244, 114, 124),
-                ],
-              )),
-              padding: EdgeInsets.all(20),
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xFF29387A),
+                      Color(0xFF306EC1),
+                    ],
+                  )),
+              padding: const EdgeInsets.all(20),
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
