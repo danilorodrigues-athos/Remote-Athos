@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `79f2e1a09` (branch `feat/no-rebrand`).
+Build: commit `a45d697c5` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -16,6 +16,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Cards de atualização/instalação do upstream desativados no Windows**: a
   atualização oficial do RustDesk não aparece; use **Clientes → Atualizações** (L3).
 - **Logo compacto**: o N estilizado forma a própria palavra NÓ, sem repetir a letra.
+- **Janela de conexão NÓ**: card do cliente e permissões com o visual da marca,
+  mantendo só o que é útil — teclado, clipboard, arquivos, reiniciar, bloquear
+  entrada e privacidade. Chat, áudio e gravação não aparecem nessa janela.
 - **Escanear rede**: ignora os IPs da própria máquina e corrige o filtro de MAC.
 - Mantidos: catálogo de clientes, online/offline, hostname com auto-correção de IP,
   histórico, senhas com DPAPI, modo suporte e diagnóstico de firewall.
@@ -106,6 +109,7 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Escanear rede não lista a própria máquina.
 - [ ] Histórico registra data/hora e duração.
 - [ ] Atualizações: escolher pasta, verificar versão e abrir o pacote.
+- [ ] Janela de conexão mostra o card NÓ, o status e só as permissões úteis.
 - [ ] Instalador copia para Program Files e cria atalhos.
 - [ ] Sessão por IP direto funciona sem internet.
 - [ ] Mouse, teclado, H.264 e área de transferência.
