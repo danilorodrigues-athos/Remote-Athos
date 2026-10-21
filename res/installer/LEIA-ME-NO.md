@@ -28,8 +28,10 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
    - O script copia para `C:\Program Files\NO`, cria atalhos, libera a porta 21118
      e solicita a instalação do serviço.
 3. Abra o NÓ e confira no card **"Este dispositivo"**:
-   - **Serviço: Instalado** (se não estiver, clique em **Instalar**).
-   - **Rede: OK** (se não estiver, clique em **Aplicar** e aceite o UAC).
+   - **Serviço: Ativo** (se aparecer **Instalar**, clique e aceite o UAC).
+   - **Rede**: o instalador já criou as regras para Domínio, Particular e Público.
+     Se aparecer **Pública**, é só o perfil da rede (comum em VPN); a porta 21118
+     continua liberada. **Aplicar** recria as regras e não é obrigatório.
 4. Defina uma **senha permanente** em **Configurações → Segurança**.
 5. No roteador, faça uma **reserva DHCP por MAC** para o IP não mudar.
 
@@ -39,6 +41,15 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 2. No aviso do Windows, use **Mais informações → Executar assim mesmo**.
 3. Para acesso sem abrir o app, clique em **Serviço → Instalar**.
    - O serviço aponta para a pasta atual; não mova a pasta depois de instalar.
+
+## Desinstalação
+
+1. Clique com o botão direito em `Desinstalar-NO.ps1` → **Executar com PowerShell**
+   (aceite o UAC).
+2. O script remove o serviço, `C:\Program Files\NO`, as regras de firewall e os
+   atalhos.
+3. `%APPDATA%\NO` (ID, senha, catálogo e pasta de atualizações) é **preservado**.
+   Para apagar tudo, exclua essa pasta manualmente.
 
 ## Atualizações offline (L3)
 
@@ -100,8 +111,8 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 ## Se não conectar
 
 - Confira se a máquina controlada está **ligada** e com o **serviço** instalado.
-- Se a rede estiver como **Pública**, troque para **Privada** ou clique em
-  **Rede → Aplicar**.
+- **Rede: Pública** não bloqueia: as regras do instalador valem para os três perfis.
+  Se o botão **Aplicar** aparecer, ele recria as regras (aceite o UAC).
 - Confira a reserva de IP no roteador.
 - Teste a porta: `Test-NetConnection <IP> -Port 21118`.
 

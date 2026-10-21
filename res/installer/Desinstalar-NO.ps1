@@ -1,69 +1,35 @@
-# Desinstalador do NO
-# Remove o servico, as regras de firewall, os atalhos e a pasta do programa.
-
 $ErrorActionPreference = 'Stop'
+$app = 'NO'
+$dst = 'C:\Program Files\NO'
+$exe = "$dst\NO.exe"
+$firewallRules = @('NO 21118 TCP', 'NO 21118 UDP')
 
-function Test-Admin {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
-if (-not (Test-Admin)) {
-    Start-Process powershell -Verb RunAs -ArgumentList @(
-        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`""
-    )
-    exit
-}
-
-$dst = Join-Path $env:ProgramFiles 'NO'
-$exe = Join-Path $dst 'NO.exe'
-
-Write-Host ''
-Write-Host '  NO - desinstalacao' -ForegroundColor Cyan
-Write-Host '  ------------------' -ForegroundColor Cyan
-Write-Host ''
-
+Write-Host "Desinstalando $app..." -ForegroundColor Cyan
 Get-Process NO, rustdesk -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Milliseconds 500
+Start-Sleep -Seconds 2
 
 if (Test-Path $exe) {
-    Write-Host '  Removendo o servico do Windows...'
-    $process = Start-Process -FilePath $exe -ArgumentList '--uninstall-service' `
-        -WorkingDirectory $dst -PassThru -WindowStyle Hidden
-    $process | Wait-Process -Timeout 45 -ErrorAction SilentlyContinue
+  Write-Host '  Removendo servico...'
+  $process = Start-Process -FilePath $exe -ArgumentList '--uninstall-service' -PassThru -WindowStyle Hidden -Wait
+  Write-Host "  Servico: exit $($process.ExitCode)"
 }
 
-foreach ($protocol in @('TCP', 'UDP')) {
-    Remove-NetFirewallRule -DisplayName "NO 21118 $protocol" -ErrorAction SilentlyContinue
-}
-Write-Host '  Regras de firewall removidas'
-
-$startMenu = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs'
-$publicDesktop = [Environment]::GetFolderPath('CommonDesktopDirectory')
-foreach ($shortcut in @(
-    (Join-Path $publicDesktop 'NO.lnk'),
-    (Join-Path ([Environment]::GetFolderPath('Desktop')) 'NO.lnk'),
-    (Join-Path $startMenu 'NO.lnk')
-)) {
-    Remove-Item -Path $shortcut -Force -ErrorAction SilentlyContinue
-}
-Write-Host '  Atalhos removidos'
-
-if (Test-Path $dst) {
-    Remove-Item -Path $dst -Recurse -Force
-    Write-Host "  Pasta removida: $dst"
+Write-Host '  Removendo do Program Files...'
+for ($i = 0; $i -lt 5; $i++) {
+  Remove-Item $dst -Recurse -Force -ErrorAction SilentlyContinue
+  if (-not (Test-Path $dst)) { break }
+  Start-Sleep -Seconds 2
 }
 
-$answer = Read-Host 'Remover tambem os dados (catalogo, senhas e configuracoes)? [s/N]'
-if ($answer -match '^[sS]') {
-    $data = Join-Path $env:APPDATA 'NO'
-    if (Test-Path $data) {
-        Remove-Item -Path $data -Recurse -Force
-        Write-Host "  Dados removidos: $data"
-    }
+Write-Host '  Removendo regras de firewall...'
+foreach ($rule in $firewallRules) {
+  Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
 }
+
+Write-Host '  Removendo atalhos...'
+Remove-Item "$env:PUBLIC\Desktop\NO.lnk" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\NO.lnk" -Force -ErrorAction SilentlyContinue
 
 Write-Host ''
-Write-Host '  NO removido.' -ForegroundColor Green
+Write-Host '  NO removido. Configuracoes e catalogo foram mantidos em %APPDATA%\NO.' -ForegroundColor Green
 Start-Sleep -Seconds 3
