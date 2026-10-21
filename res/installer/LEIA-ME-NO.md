@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `fb08b04fc` (branch `feat/no-rebrand`).
+Build: commit `79f2e1a09` (branch `feat/no-rebrand`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -13,6 +13,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   libera a porta 21118 e instala o serviço do Windows.
 - **Renomeação (L4)**: serviço, pipe, pasta de configuração e regras de firewall
   agora usam `NO`.
+- **Cards de atualização/instalação do upstream desativados no Windows**: a
+  atualização oficial do RustDesk não aparece; use **Clientes → Atualizações** (L3).
+- **Logo compacto**: o N estilizado forma a própria palavra NÓ, sem repetir a letra.
 - **Escanear rede**: ignora os IPs da própria máquina e corrige o filtro de MAC.
 - Mantidos: catálogo de clientes, online/offline, hostname com auto-correção de IP,
   histórico, senhas com DPAPI, modo suporte e diagnóstico de firewall.
