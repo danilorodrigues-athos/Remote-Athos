@@ -6,6 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/formatter/id_formatter.dart';
+import 'package:flutter_hbb/desktop/widgets/audit_log.dart';
+import 'package:flutter_hbb/desktop/widgets/lan_scan.dart';
 import 'package:flutter_hbb/desktop/widgets/network_tools.dart';
 import 'package:flutter_hbb/desktop/widgets/secure_storage.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
@@ -19,12 +21,16 @@ class CatalogMachine {
     this.alias = '',
     this.password = '',
     this.lastSeenAt = 0,
+    this.hostname = '',
+    this.mac = '',
   });
 
   String id;
   String alias;
   String password;
   int lastSeenAt;
+  String hostname;
+  String mac;
   bool online = false;
   bool passwordBroken = false;
 
@@ -33,6 +39,8 @@ class CatalogMachine {
         'alias': alias,
         'password': password,
         'lastSeenAt': lastSeenAt,
+        'hostname': hostname,
+        'mac': mac,
       };
 
   factory CatalogMachine.fromJson(Map<String, dynamic> json) => CatalogMachine(
@@ -40,6 +48,8 @@ class CatalogMachine {
         alias: (json['alias'] ?? '').toString(),
         password: (json['password'] ?? '').toString(),
         lastSeenAt: (json['lastSeenAt'] as num?)?.toInt() ?? 0,
+        hostname: (json['hostname'] ?? '').toString(),
+        mac: (json['mac'] ?? '').toString(),
       );
 }
 
@@ -120,7 +130,20 @@ class ClientCatalog {
   String export() => jsonEncode({
         'version': 1,
         'exportedAt': DateTime.now().toIso8601String(),
-        'clients': clients.map((e) => e.toJson()).toList(),
+        'clients': clients
+            .map((client) => {
+                  'id': client.id,
+                  'name': client.name,
+                  'note': client.note,
+                  'phone': client.phone,
+                  'machines': client.machines.map((machine) {
+                    final password =
+                        SecureStorage.encrypt(machine.password) ??
+                            machine.password;
+                    return {...machine.toJson(), 'password': password};
+                  }).toList(),
+                })
+            .toList(),
       });
 
   void _decryptAll() {
@@ -151,6 +174,8 @@ class ClientCatalog {
               'alias': machine.alias,
               'password': password,
               'lastSeenAt': machine.lastSeenAt,
+              'hostname': machine.hostname,
+              'mac': machine.mac,
             };
           }).toList(),
         }).toList();
@@ -173,6 +198,8 @@ class ClientsCatalogView extends StatefulWidget {
 
 class _ClientsCatalogViewState extends State<ClientsCatalogView> {
   final ClientCatalog catalog = ClientCatalog();
+  final AuditLog audit = AuditLog();
+  final Map<String, Timer> _sessionTrackers = <String, Timer>{};
   Timer? _statusTimer;
   DateTime _lastStatusPersist = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -189,6 +216,7 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
   void initState() {
     super.initState();
     catalog.load();
+    audit.load();
     _statusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _refreshStatuses();
     });
@@ -198,16 +226,28 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
   @override
   void dispose() {
     _statusTimer?.cancel();
+    for (final timer in _sessionTrackers.values) {
+      timer.cancel();
+    }
+    _sessionTrackers.clear();
     super.dispose();
   }
 
   /// Pings every machine in the catalog and refreshes the online badge and the
-  /// "last seen" timestamp.
+  /// "last seen" timestamp. Machines with a hostname are resolved first, so a
+  /// DHCP change is corrected in the catalog itself.
   Future<void> _refreshStatuses() async {
     final tasks = <Future<void>>[];
     for (final client in catalog.clients) {
       for (final machine in client.machines) {
         tasks.add(Future(() async {
+          final hostname = machine.hostname.trim();
+          if (hostname.isNotEmpty) {
+            final resolved = await LanScanner.resolve(hostname);
+            if (resolved != null && resolved != machine.id) {
+              machine.id = resolved;
+            }
+          }
           machine.online = await NetworkTools.probe(machine.id);
           if (machine.online) {
             machine.lastSeenAt = DateTime.now().millisecondsSinceEpoch;
@@ -278,7 +318,8 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
     if (phone.isEmpty) return;
     final message = Uri.encodeComponent(
         'Olá! Aqui é o suporte ATHOSDESK. Posso ligar para você?');
-    launchUrlString('https://wa.me/$phone?text=$message');
+    launchUrl(Uri.parse('https://wa.me/$phone?text=$message'),
+        mode: LaunchMode.externalApplication);
   }
 
   String _formatLastSeen(int millis) {
@@ -288,6 +329,150 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
     if (diff.inMinutes < 60) return 'há ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'há ${diff.inHours} h';
     return 'há ${diff.inDays} d';
+  }
+
+  String _formatDuration(int seconds) {
+    if (seconds < 60) return '$seconds s';
+    if (seconds < 3600) return '${seconds ~/ 60} min';
+    return '${seconds ~/ 3600} h ${((seconds % 3600) ~/ 60)} min';
+  }
+
+  void _scanLan() {
+    gFFI.dialogManager.show((setState, close, context) {
+      final scan = LanScanner.scan();
+      var selected =
+          catalog.clients.isNotEmpty ? catalog.clients.first : null;
+      return CustomAlertDialog(
+        title: const Text('Escanear rede'),
+        content: SizedBox(
+          width: 540,
+          height: 420,
+          child: StatefulBuilder(
+            builder: (context, setLocal) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (catalog.clients.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 10),
+                      child: Text(
+                          'Cadastre um cliente antes de adicionar máquinas.'),
+                    )
+                  else
+                    DropdownButton<CatalogClient>(
+                      value: selected,
+                      isExpanded: true,
+                      items: catalog.clients
+                          .map((client) => DropdownMenuItem(
+                                value: client,
+                                child: Text(client.name),
+                              ))
+                          .toList(),
+                      onChanged: (value) => setLocal(() => selected = value),
+                    ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: FutureBuilder<List<DiscoveredHost>>(
+                      future: scan,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState !=
+                            ConnectionState.done) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        final hosts = snapshot.data ?? const <DiscoveredHost>[];
+                        if (hosts.isEmpty) {
+                          return const Center(
+                              child:
+                                  Text('Nenhuma máquina encontrada na rede'));
+                        }
+                        return ListView.builder(
+                          itemCount: hosts.length,
+                          itemBuilder: (_, index) {
+                            final host = hosts[index];
+                            final canAdd = catalog.clients.isNotEmpty &&
+                                selected != null;
+                            return ListTile(
+                              dense: true,
+                              title: Text(host.ip),
+                              subtitle:
+                                  Text(host.mac ?? 'MAC não identificado'),
+                              trailing: canAdd
+                                  ? TextButton(
+                                      onPressed: () {
+                                        close();
+                                        _editMachine(
+                                          selected!,
+                                          null,
+                                          prefillIp: host.ip,
+                                          prefillMac: host.mac,
+                                        );
+                                      },
+                                      child: const Text('Adicionar'),
+                                    )
+                                  : null,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        actions: [dialogButton('Cancel', onPressed: close)],
+        onCancel: close,
+      );
+    });
+  }
+
+  void _showAudit() {
+    gFFI.dialogManager.show((setState, close, context) {
+      final entries = audit.entries;
+      return CustomAlertDialog(
+        title: const Text('Histórico de conexões'),
+        content: SizedBox(
+          width: 540,
+          height: 420,
+          child: entries.isEmpty
+              ? const Center(child: Text('Nenhuma conexão registrada'))
+              : ListView.builder(
+                  itemCount: entries.length,
+                  itemBuilder: (_, index) {
+                    final entry = entries[index];
+                    final date =
+                        '${entry.when.day.toString().padLeft(2, '0')}/${entry.when.month.toString().padLeft(2, '0')} '
+                        '${entry.when.hour.toString().padLeft(2, '0')}:${entry.when.minute.toString().padLeft(2, '0')}';
+                    final duration = entry.durationSeconds == null
+                        ? ''
+                        : ' · ${_formatDuration(entry.durationSeconds!)}';
+                    return ListTile(
+                      dense: true,
+                      title: Text('${entry.client} · ${entry.machine}'),
+                      subtitle: Text(
+                        '$date · ${entry.online ? "online" : "offline"}$duration',
+                      ),
+                      trailing: Text(
+                        entry.id,
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          dialogButton('Limpar', onPressed: () {
+            audit.clear();
+            this.setState(() {});
+            close();
+          }, isOutline: true),
+          dialogButton('Close', onPressed: close),
+        ],
+        onCancel: close,
+      );
+    });
   }
 
   @override
@@ -382,6 +567,26 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
               onPressed: _importCatalog,
               icon: const Icon(Icons.upload_rounded, size: 15),
               label: const Text('Importar'),
+              style: TextButton.styleFrom(
+                foregroundColor: MyTheme.accent,
+                textStyle: const TextStyle(fontSize: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _scanLan,
+              icon: const Icon(Icons.wifi_find_rounded, size: 15),
+              label: const Text('Escanear'),
+              style: TextButton.styleFrom(
+                foregroundColor: MyTheme.accent,
+                textStyle: const TextStyle(fontSize: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _showAudit,
+              icon: const Icon(Icons.history_rounded, size: 15),
+              label: const Text('Histórico'),
               style: TextButton.styleFrom(
                 foregroundColor: MyTheme.accent,
                 textStyle: const TextStyle(fontSize: 12),
@@ -606,7 +811,7 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
           SizedBox(
             height: 32,
             child: ElevatedButton(
-              onPressed: () => _connect(machine),
+              onPressed: () => _connect(client, machine),
               child: Text(translate('Connect')),
             ),
           ),
@@ -647,13 +852,67 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
         .toUpperCase();
   }
 
-  void _connect(CatalogMachine machine) {
+  Future<void> _connect(CatalogClient client, CatalogMachine machine) async {
+    final hostname = machine.hostname.trim();
+    var target = machine.id.trim();
+    if (hostname.isNotEmpty) {
+      final resolved = await LanScanner.resolve(hostname);
+      if (resolved != null) {
+        target = resolved;
+        machine.id = resolved;
+      } else {
+        showToast('Não foi possível resolver "$hostname"');
+      }
+    }
+    if (target.isEmpty) {
+      showToast('Informe o IP da máquina');
+      return;
+    }
     final password = machine.password.trim();
+    audit.recordStart(
+      client: client.name,
+      machine: machine.alias.trim().isEmpty
+          ? formatID(machine.id)
+          : machine.alias.trim(),
+      id: target,
+      online: machine.online,
+    );
+    if (mounted) setState(() {});
     connect(
       context,
-      machine.id.trim(),
+      target,
       password: password.isEmpty ? null : password,
     );
+    _trackSession(target);
+  }
+
+  /// Watches the session for [peerId] and records its duration once it closes.
+  void _trackSession(String peerId) {
+    _sessionTrackers[peerId]?.cancel();
+    var seen = false;
+    final start = DateTime.now();
+    final timer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (DateTime.now().difference(start).inHours >= 3) {
+        _sessionTrackers.remove(peerId)?.cancel();
+        return;
+      }
+      final count = bind.peerGetSessionsCount(id: peerId, connType: 0);
+      if (count >= 1) seen = true;
+      if (!seen || count > 0) return;
+      _sessionTrackers.remove(peerId)?.cancel();
+      final duration = DateTime.now().difference(start).inSeconds;
+      for (final entry in audit.entries) {
+        if (entry.id == peerId && entry.durationSeconds == null) {
+          entry.durationSeconds = duration;
+          break;
+        }
+      }
+      audit
+          .save()
+          .catchError((e) => debugPrint('save audit log failed: $e'));
+      if (mounted) setState(() {});
+    });
+    _sessionTrackers[peerId] = timer;
   }
 
   void _editClient(CatalogClient? client) {
@@ -725,11 +984,21 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
     });
   }
 
-  void _editMachine(CatalogClient client, CatalogMachine? machine) {
-    final idController = TextEditingController(text: machine?.id ?? '');
+  void _editMachine(
+    CatalogClient client,
+    CatalogMachine? machine, {
+    String? prefillIp,
+    String? prefillMac,
+  }) {
+    final idController =
+        TextEditingController(text: machine?.id ?? prefillIp ?? '');
     final aliasController = TextEditingController(text: machine?.alias ?? '');
     final passwordController =
         TextEditingController(text: machine?.password ?? '');
+    final hostnameController =
+        TextEditingController(text: machine?.hostname ?? '');
+    final macController =
+        TextEditingController(text: machine?.mac ?? prefillMac ?? '');
     var passwordVisible = false;
     String? error;
     gFFI.dialogManager.show((setState, close, context) {
@@ -745,16 +1014,22 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
           setState(() => error = 'Esta máquina já está neste cliente');
           return;
         }
+        final hostname = hostnameController.text.trim();
+        final mac = macController.text.trim();
         if (machine == null) {
           client.machines.add(CatalogMachine(
             id: id,
             alias: aliasController.text.trim(),
             password: passwordController.text,
+            hostname: hostname,
+            mac: mac,
           ));
         } else {
           machine.id = id;
           machine.alias = aliasController.text.trim();
           machine.password = passwordController.text;
+          machine.hostname = hostname;
+          machine.mac = mac;
         }
         _persist();
         this.setState(() {});
@@ -785,6 +1060,22 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
               controller: aliasController,
               decoration:
                   const InputDecoration(labelText: 'Apelido (ex.: Recepção)'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: hostnameController,
+              decoration: const InputDecoration(
+                labelText: 'Nome do computador (opcional)',
+                hintText: 'ex.: recepcao-pc',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: macController,
+              decoration: const InputDecoration(
+                labelText: 'MAC (opcional)',
+                hintText: 'AA-BB-CC-DD-EE-FF',
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
