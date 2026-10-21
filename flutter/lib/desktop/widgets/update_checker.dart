@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const kUpdateFolderOptionKey = 'no-update-folder';
@@ -48,8 +49,8 @@ class UpdateChecker {
   }
 }
 
-Future<void> showUpdateDialog(BuildContext context) {
-  return showDialog(
+Future<void> showUpdateDialog(BuildContext context) async {
+  await showDialog(
     context: context,
     builder: (_) => const _UpdateDialog(),
   );
