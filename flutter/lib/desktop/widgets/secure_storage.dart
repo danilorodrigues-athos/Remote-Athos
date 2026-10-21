@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
@@ -48,6 +47,9 @@ typedef _CryptUnprotectDataDart = int Function(
     int,
     Pointer<_DataBlob>);
 
+typedef _LocalFreeC = IntPtr Function(IntPtr);
+typedef _LocalFreeDart = int Function(int);
+
 /// DPAPI with `CRYPTPROTECT_LOCAL_MACHINE`: any user on this machine can open
 /// the value, so elevating the app does not lose the saved passwords.
 const _kLocalMachine = 0x4;
@@ -62,7 +64,7 @@ class SecureStorage {
 
   static _CryptProtectDataDart? _protect;
   static _CryptUnprotectDataDart? _unprotect;
-  static Pointer<NativeFunction<IntPtr Function(IntPtr)>>? _localFree;
+  static _LocalFreeDart? _localFree;
 
   static void _init() {
     if (_protect != null) return;
@@ -75,7 +77,8 @@ class SecureStorage {
             'CryptUnprotectData');
     final kernel32 = DynamicLibrary.open('kernel32.dll');
     _localFree = kernel32
-        .lookup<NativeFunction<IntPtr Function(IntPtr)>>('LocalFree');
+        .lookup<NativeFunction<_LocalFreeC>>('LocalFree')
+        .asFunction<_LocalFreeDart>();
   }
 
   /// Returns `enc:<base64>` on success, or null when encryption is unavailable.
@@ -140,7 +143,7 @@ class SecureStorage {
       final plain = outBlob.ref.pbData.asTypedList(outBlob.ref.cbData);
       final result = utf8.decode(plain, allowMalformed: true);
       _freeBlob(outBlob.ref.pbData);
-      if (!desc.value.isNull) _freeBlob(desc.value.cast());
+      if (desc.value.address != 0) _freeBlob(desc.value.cast());
       calloc.free(input);
       calloc.free(inBlob);
       calloc.free(outBlob);
@@ -153,7 +156,7 @@ class SecureStorage {
   }
 
   static void _freeBlob(Pointer<Uint8> pointer) {
-    if (pointer.isNull) return;
+    if (pointer.address == 0) return;
     _localFree!(pointer.address);
   }
 }

@@ -278,7 +278,8 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
     if (phone.isEmpty) return;
     final message = Uri.encodeComponent(
         'Olá! Aqui é o suporte ATHOSDESK. Posso ligar para você?');
-    launchUrlString('https://wa.me/$phone?text=$message');
+    launchUrl(Uri.parse('https://wa.me/$phone?text=$message'),
+        mode: LaunchMode.externalApplication);
   }
 
   String _formatLastSeen(int millis) {
