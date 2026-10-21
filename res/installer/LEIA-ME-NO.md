@@ -27,6 +27,8 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
    (aceite o UAC).
    - O script copia para `C:\Program Files\NO`, cria atalhos, libera a porta 21118
      e solicita a instalação do serviço.
+   - Se o NÓ abrir sozinho ao final da instalação, feche essa janela e abra pelo
+     atalho. O atalho inicia o app **sem** privilégios de administrador.
 3. Abra o NÓ e confira no card **"Este dispositivo"**:
    - **Serviço: Ativo** (se aparecer **Instalar**, clique e aceite o UAC).
    - **Rede**: o instalador já criou as regras para Domínio, Particular e Público.
