@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `a45d697c5` (branch `master`).
+Build: commit `70ebcc72c` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -19,6 +19,8 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Janela de conexão NÓ**: card do cliente e permissões com o visual da marca,
   mantendo só o que é útil — teclado, clipboard, arquivos, reiniciar, bloquear
   entrada e privacidade. Na conexão remota, chat, áudio e gravação não aparecem.
+- **Senha permanente**: o diálogo "Definir Senha" agora exige só o tamanho
+  mínimo de 8 caracteres; não exige dígito, maiúscula, minúscula nem especial.
 - **Escanear rede**: ignora os IPs da própria máquina e corrige o filtro de MAC.
 - Mantidos: catálogo de clientes, online/offline, hostname com auto-correção de IP,
   histórico, senhas com DPAPI, modo suporte e diagnóstico de firewall.
@@ -110,6 +112,7 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Histórico registra data/hora e duração.
 - [ ] Atualizações: escolher pasta, verificar versão e abrir o pacote.
 - [ ] Janela de conexão mostra o card NÓ, o status e só as permissões úteis.
+- [ ] Definir Senha aceita qualquer combinação com pelo menos 8 caracteres.
 - [ ] Instalador copia para Program Files e cria atalhos.
 - [ ] Sessão por IP direto funciona sem internet.
 - [ ] Mouse, teclado, H.264 e área de transferência.
