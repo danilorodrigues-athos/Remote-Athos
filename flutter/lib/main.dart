@@ -287,7 +287,7 @@ void runConnectionManagerScreen() async {
   _runApp(
     '',
     const DesktopServerPage(),
-    MyTheme.currentThemeMode(),
+    ThemeMode.dark,
   );
   final hide = await bind.cmGetConfig(name: "hide_cm") == 'true';
   gFFI.serverModel.hideCm = hide;
