@@ -6,7 +6,7 @@ on:
       paths:
         description: "Space separated Dart paths (relative to flutter/)"
         required: false
-        default: "lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/connection_page.dart lib/desktop/widgets/client_catalog.dart"
+        default: "lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/connection_page.dart lib/desktop/widgets/client_catalog.dart lib/desktop/widgets/secure_storage.dart lib/desktop/widgets/network_tools.dart"
 
 jobs:
   analyze:
