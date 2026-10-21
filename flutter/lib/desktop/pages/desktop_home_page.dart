@@ -14,6 +14,7 @@ import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/client_catalog.dart';
+import 'package:flutter_hbb/desktop/widgets/network_tools.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
@@ -58,6 +59,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   final GlobalKey _childKey = GlobalKey();
 
   int _railIndex = 0;
+  bool _supportMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -66,24 +68,29 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       return _buildBlock(child: buildLeftPane(context));
     }
     return _buildBlock(
-        child: Container(
-      color: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF111827)
-          : const Color(0xFFF3F3F3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildRail(context),
-          const VerticalDivider(width: 1),
-          Expanded(
-            child: _railIndex == 0
-                ? _buildHome(context)
-                : _railIndex == 4
-                    ? const ClientsCatalogView()
-                    : _buildPeersPane(context),
+        child: Stack(
+      children: [
+        Container(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF111827)
+              : const Color(0xFFF3F3F3),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildRail(context),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: _railIndex == 0
+                    ? _buildHome(context)
+                    : _railIndex == 4
+                        ? const ClientsCatalogView()
+                        : _buildPeersPane(context),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        if (_supportMode) _buildSupportOverlay(context),
+      ],
     ));
   }
 
@@ -236,14 +243,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               return Column(
                 children: [
                   if (!isOutgoingOnly)
-                    SizedBox(height: 360, child: _buildDeviceCard(context)),
+                    SizedBox(height: 420, child: _buildDeviceCard(context)),
                   if (!isOutgoingOnly) const SizedBox(height: 16),
                   SizedBox(height: 480, child: buildRightPane(context)),
                 ],
               );
             }
             return SizedBox(
-              height: 400,
+              height: 440,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -321,6 +328,15 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                             color: muted),
                       ),
                     ),
+                    InkWell(
+                      onTap: () => setState(() => _supportMode = true),
+                      child: Tooltip(
+                        message: 'Modo suporte',
+                        child: Icon(Icons.present_to_all_rounded,
+                            size: 18, color: muted),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     buildPopupMenu(context),
                   ],
                 ),
@@ -422,7 +438,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
+                const _DeviceStatusCard(),
+                const SizedBox(height: 14),
                 Divider(height: 1, color: muted?.withOpacity(0.3)),
                 const SizedBox(height: 14),
                 _tipRow(context, Icons.wifi_tethering_rounded,
@@ -438,6 +456,116 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSupportOverlay(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
+    return Container(
+      color: isDark ? const Color(0xFF111827) : const Color(0xFFF3F3F3),
+      padding: const EdgeInsets.all(28),
+      child: FutureBuilder<List<String>>(
+        future: NetworkTools.localIPv4s(),
+        builder: (context, snapshot) {
+          final ips = snapshot.data ?? const <String>[];
+          final id = gFFI.serverModel.serverId.text;
+          final passwd = gFFI.serverModel.serverPasswd.text;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.headset_mic_rounded, size: 22, color: MyTheme.accent),
+                  const SizedBox(width: 10),
+                  Text(
+                    'MODO SUPORTE',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => setState(() => _supportMode = false),
+                    child: const Text('Fechar'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1A1F2E) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF24252B)
+                          : const Color(0xFFE1E1E1)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _supportField('ID', id, Icons.tag_rounded),
+                    const SizedBox(height: 18),
+                    _supportField(
+                      'Endereço local',
+                      ips.isNotEmpty
+                          ? '${ips.first}:${NetworkTools.directPort}'
+                          : 'não detectado',
+                      Icons.lan_rounded,
+                    ),
+                    const SizedBox(height: 18),
+                    _supportField(
+                      'Senha temporária',
+                      passwd.isEmpty ? 'não configurada' : passwd,
+                      Icons.key_rounded,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Leia o ID ou o endereço local para o técnico. A conexão por IP direto funciona mesmo sem internet.',
+                style: TextStyle(fontSize: 12.5, color: muted),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _supportField(String label, String value, IconData icon) {
+    final muted = Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 11, color: muted)),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Icon(icon, size: 18, color: MyTheme.accent),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: value));
+                showToast(translate('Copied'));
+              },
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1506,4 +1634,165 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
       onCancel: close,
     );
   });
+}
+
+class _DeviceStatusCard extends StatefulWidget {
+  const _DeviceStatusCard({Key? key}) : super(key: key);
+
+  @override
+  State<_DeviceStatusCard> createState() => _DeviceStatusCardState();
+}
+
+class _DeviceStatusCardState extends State<_DeviceStatusCard> {
+  List<String> _ips = const [];
+  bool _serviceInstalled = false;
+  String _networkCategory = '';
+  bool _portListening = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _refresh());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final ips = await NetworkTools.localIPv4s();
+    final installed = bind.mainIsInstalled();
+    final category = await NetworkTools.networkCategory();
+    final listening = await NetworkTools.portListening(NetworkTools.directPort);
+    if (!mounted) return;
+    setState(() {
+      _ips = ips;
+      _serviceInstalled = installed;
+      _networkCategory = category;
+      _portListening = listening;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted =
+        Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
+    final isPublic = _networkCategory.toLowerCase() == 'public';
+    final address = _ips.isNotEmpty
+        ? '${_ips.first}:${NetworkTools.directPort}'
+        : 'não detectado';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151B2B) : const Color(0xFFF3F5F9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          _row(
+            icon: Icons.lan_rounded,
+            label: 'IP local',
+            value: address,
+            trailing: InkWell(
+              onTap: () {
+                if (_ips.isEmpty) return;
+                Clipboard.setData(ClipboardData(text: address));
+                showToast(translate('Copied'));
+              },
+              child: Tooltip(
+                message: 'Copiar',
+                child: Icon(Icons.copy_rounded, size: 15, color: muted),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          _row(
+            icon: Icons.miscellaneous_services_rounded,
+            label: 'Serviço',
+            value: _serviceInstalled ? 'Ativo' : 'Não instalado',
+            valueColor: _serviceInstalled ? Colors.green : Colors.orange,
+            trailing: TextButton(
+              onPressed: () async {
+                await start_service(!_serviceInstalled);
+                await _refresh();
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(fontSize: 11.5),
+              ),
+              child: Text(_serviceInstalled ? 'Desinstalar' : 'Instalar'),
+            ),
+          ),
+          const SizedBox(height: 4),
+          _row(
+            icon: Icons.wifi_rounded,
+            label: 'Rede',
+            value: _networkCategory.isEmpty
+                ? (_portListening ? 'Privada' : 'Desconhecido')
+                : _networkCategory,
+            valueColor: isPublic ? Colors.orange : null,
+            trailing: TextButton(
+              onPressed: () async {
+                final ok = await NetworkTools.fixFirewall();
+                showToast(ok
+                    ? 'Regras aplicadas. Aceite o UAC, se aparecer.'
+                    : 'Não foi possível aplicar as regras');
+                await _refresh();
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(fontSize: 11.5),
+              ),
+              child: Text('Aplicar'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row({
+    required IconData icon,
+    required String label,
+    required String value,
+    Widget? trailing,
+    Color? valueColor,
+  }) {
+    final muted =
+        Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: MyTheme.accent),
+        const SizedBox(width: 8),
+        Text(label,
+            style: TextStyle(fontSize: 11.5, color: muted)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? (muted ?? Colors.black87)),
+          ),
+        ),
+        if (trailing != null)
+          SizedBox(
+            height: 28,
+            child: trailing,
+          ),
+      ],
+    );
+  }
 }
