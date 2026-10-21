@@ -18,7 +18,7 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Logo compacto**: o N estilizado forma a própria palavra NÓ, sem repetir a letra.
 - **Janela de conexão NÓ**: card do cliente e permissões com o visual da marca,
   mantendo só o que é útil — teclado, clipboard, arquivos, reiniciar, bloquear
-  entrada e privacidade. Chat, áudio e gravação não aparecem nessa janela.
+  entrada e privacidade. Na conexão remota, chat, áudio e gravação não aparecem.
 - **Escanear rede**: ignora os IPs da própria máquina e corrige o filtro de MAC.
 - Mantidos: catálogo de clientes, online/offline, hostname com auto-correção de IP,
   histórico, senhas com DPAPI, modo suporte e diagnóstico de firewall.
