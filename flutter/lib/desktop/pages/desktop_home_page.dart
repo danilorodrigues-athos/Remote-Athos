@@ -232,7 +232,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         children: [
           Row(
             children: [
-              SizedBox(width: 180, child: loadLogo()),
+              loadLogo(),
               const Spacer(),
             ],
           ),
@@ -938,6 +938,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildHelpCards(String updateUrl) {
+    if (isWindows) {
+      // NÓ is installed by the bundled PowerShell installer and updates from a
+      // shared folder; upstream install/update cards would offer RustDesk.
+      if (systemError.isNotEmpty) {
+        return buildInstallCard("", systemError, "", () {});
+      }
+      return const SizedBox.shrink();
+    }
     if (!bind.isCustomClient() &&
         updateUrl.isNotEmpty &&
         !isCardClosed &&

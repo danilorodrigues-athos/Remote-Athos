@@ -68,8 +68,7 @@ if (Test-Path $exe) {
 }
 
 Write-Host ''
-Write-Host '  Pronto. Abra o NO pelo atalho.' -ForegroundColor Green
+Write-Host '  Pronto. Abra o NO pelo atalho da area de trabalho.' -ForegroundColor Green
 Write-Host '  Na tela inicial, confira o servico e o diagnostico de firewall.'
 Write-Host ''
-Read-Host 'Pressione Enter para abrir o NO'
-Start-Process -FilePath $exe -WorkingDirectory $dst
+Start-Sleep -Seconds 3

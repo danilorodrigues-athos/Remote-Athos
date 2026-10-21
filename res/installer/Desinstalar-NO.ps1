@@ -66,4 +66,4 @@ if ($answer -match '^[sS]') {
 
 Write-Host ''
 Write-Host '  NO removido.' -ForegroundColor Green
-Read-Host 'Pressione Enter para fechar'
+Start-Sleep -Seconds 3

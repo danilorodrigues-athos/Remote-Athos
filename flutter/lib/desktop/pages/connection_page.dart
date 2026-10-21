@@ -80,9 +80,8 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
 
     setupServerWidget() => Flexible(
           child: Offstage(
-            offstage: !(!_svcStopped.value &&
-                stateGlobal.svcStatus.value == SvcStatus.ready &&
-                _svcIsUsingPublicServer.value),
+            // NÓ connects by direct IP; the public-server setup guide does not apply.
+            offstage: true,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
