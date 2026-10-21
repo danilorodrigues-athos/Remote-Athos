@@ -130,7 +130,20 @@ class ClientCatalog {
   String export() => jsonEncode({
         'version': 1,
         'exportedAt': DateTime.now().toIso8601String(),
-        'clients': clients.map((e) => e.toJson()).toList(),
+        'clients': clients
+            .map((client) => {
+                  'id': client.id,
+                  'name': client.name,
+                  'note': client.note,
+                  'phone': client.phone,
+                  'machines': client.machines.map((machine) {
+                    final password =
+                        SecureStorage.encrypt(machine.password) ??
+                            machine.password;
+                    return {...machine.toJson(), 'password': password};
+                  }).toList(),
+                })
+            .toList(),
       });
 
   void _decryptAll() {
