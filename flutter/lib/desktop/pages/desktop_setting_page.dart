@@ -14,6 +14,7 @@ import 'package:flutter_hbb/common/widgets/keyboard_shortcuts/page_body.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_keyboard_shortcuts_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
+import 'package:flutter_hbb/desktop/widgets/secure_storage.dart';
 import 'package:flutter_hbb/mobile/widgets/dialog.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/printer_model.dart';
@@ -23,7 +24,6 @@ import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/login.dart';
@@ -37,6 +37,8 @@ const double _kContentHSubMargin = _kContentHMargin + 33;
 const double _kCheckBoxLeftMargin = 10;
 const double _kRadioLeftMargin = 10;
 const double _kListViewBottomMargin = 15;
+const String _kLocalAccountNameKey = 'no-local-account-name';
+const String _kLocalAccountPasswordKey = 'no-local-account-password';
 const double _kTitleFontSize = 20;
 const double _kContentFontSize = 15;
 const Color _accentColor = MyTheme.accent;
@@ -2258,89 +2260,246 @@ class _Account extends StatefulWidget {
 }
 
 class _AccountState extends State<_Account> {
+  String _name = '';
+  bool _hasPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalAccount();
+  }
+
+  void _loadLocalAccount() {
+    _name = bind.mainGetLocalOption(key: _kLocalAccountNameKey).trim();
+    _hasPassword =
+        bind.mainGetLocalOption(key: _kLocalAccountPasswordKey).isNotEmpty;
+  }
+
+  Future<void> _editLocalAccount() async {
+    final saved = await localAccountDialog(
+        name: _name, hasPassword: _hasPassword);
+    if (!mounted || saved != true) return;
+    setState(_loadLocalAccount);
+  }
+
+  Future<void> _removeLocalAccount() async {
+    final confirmed = await gFFI.dialogManager.show<bool>(
+      (setState, close, context) => CustomAlertDialog(
+        title: Text(translate('Remove')),
+        content: Text('Remover a conta local desta máquina?'),
+        actions: [
+          dialogButton('Cancel',
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () => close(false),
+              isOutline: true),
+          dialogButton('Remove',
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () => close(true)),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    await bind.mainSetLocalOption(key: _kLocalAccountNameKey, value: '');
+    await bind.mainSetLocalOption(key: _kLocalAccountPasswordKey, value: '');
+    if (!mounted) return;
+    setState(_loadLocalAccount);
+  }
+
   @override
   Widget build(BuildContext context) {
     final scrollController = ScrollController();
     return ListView(
       controller: scrollController,
       children: [
-        _Card(title: 'Account', children: [accountAction(), useInfo()]),
+        _Card(
+          title: 'Account',
+          children: [
+            if (_name.isEmpty) _emptyLocalAccount() else _localAccount(),
+          ],
+        ),
       ],
     ).marginOnly(bottom: _kListViewBottomMargin);
   }
 
-  Widget accountAction() {
-    return Obx(() => _Button(
-        gFFI.userModel.userName.value.isEmpty
-            ? 'Login'
-            : '${translate('Logout')} (${gFFI.userModel.accountLabelWithHandle})',
-        () => {
-              gFFI.userModel.userName.value.isEmpty
-                  ? loginDialog()
-                  : logOutConfirmDialog()
-            }));
+  Widget _emptyLocalAccount() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Nenhuma conta local. O ${getAppDisplayName()} não envia cadastro para a nuvem.',
+        ).marginOnly(left: _kContentHMargin, top: 8, bottom: 4),
+        _Button('Login', _editLocalAccount),
+      ],
+    );
   }
 
-  Widget useInfo() {
-    return Obx(() => Offstage(
-          offstage: gFFI.userModel.userName.value.isEmpty,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10),
+  Widget _localAccount() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: _accentColor,
+              child: Text(
+                _name[0].toUpperCase(),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
+              ),
             ),
-            child: Builder(builder: (context) {
-              final avatarWidget = _buildUserAvatar();
-              return Row(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (avatarWidget != null) avatarWidget,
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          gFFI.userModel.displayNameOrUserName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        SelectionArea(
-                          child: Text(
-                            '@${gFFI.userModel.userName.value}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color:
-                                  Theme.of(context).textTheme.bodySmall?.color,
-                            ),
-                          ),
-                        ),
-                      ],
+                  Text(
+                    _name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Conta local — salva nesta máquina',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
-              );
-            }),
-          ),
-        )).marginOnly(left: 18, top: 16);
+              ),
+            ),
+          ],
+        ).marginOnly(left: _kContentHMargin),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _Button('Edit', _editLocalAccount),
+            const SizedBox(width: 8),
+            _Button('Remove', _removeLocalAccount,
+                style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Colors.red))),
+          ],
+        ),
+        if (_hasPassword)
+          Text(
+            'Senha local salva com proteção do Windows.',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+          ).marginOnly(left: _kContentHMargin, top: 8),
+      ],
+    ).marginOnly(top: 12, bottom: 12);
   }
+}
 
-  Widget? _buildUserAvatar() {
-    // Resolve relative avatar path at display time
-    final avatar =
-        bind.mainResolveAvatarUrl(avatar: gFFI.userModel.avatar.value);
-    return buildAvatarWidget(
-      avatar: avatar,
-      size: 44,
+Future<bool?> localAccountDialog(
+    {String name = '', bool hasPassword = false}) {
+  final nameController = TextEditingController(text: name);
+  final passwordController = TextEditingController();
+  final confirmationController = TextEditingController();
+  String? nameMsg;
+  String? passwordMsg;
+
+  return gFFI.dialogManager.show<bool>((setState, close, context) {
+    void submit() async {
+      final username = nameController.text.trim();
+      if (username.isEmpty) {
+        setState(() => nameMsg = translate('Username missed'));
+        return;
+      }
+      final password = passwordController.text;
+      if (password.isNotEmpty &&
+          password != confirmationController.text) {
+        setState(() => passwordMsg =
+            translate('The confirmation is not identical.'));
+        return;
+      }
+      if (password.isNotEmpty) {
+        final encrypted = SecureStorage.encrypt(password);
+        if (encrypted == null) {
+          setState(() => passwordMsg =
+              'Não foi possível salvar a senha com segurança nesta máquina.');
+          return;
+        }
+        await bind.mainSetLocalOption(
+            key: _kLocalAccountPasswordKey, value: encrypted);
+      }
+      await bind.mainSetLocalOption(
+          key: _kLocalAccountNameKey, value: username);
+      close(true);
+    }
+
+    return CustomAlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.person_outline, color: _accentColor),
+          Text('${translate('Account')} ${translate('Local')}')
+              .paddingOnly(left: 10),
+        ],
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 420),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              maxLength: 64,
+              decoration: InputDecoration(
+                labelText: translate('Username'),
+                errorText: nameMsg,
+              ),
+            ),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              maxLength: 128,
+              decoration: InputDecoration(
+                labelText: translate('Password'),
+                errorText: passwordMsg,
+              ),
+            ),
+            TextField(
+              controller: confirmationController,
+              obscureText: true,
+              maxLength: 128,
+              decoration: InputDecoration(
+                labelText: translate('Confirmation'),
+              ),
+            ),
+            if (hasPassword)
+              const Text(
+                'Deixe a senha em branco para manter a atual.',
+                style: TextStyle(fontSize: 12),
+              ),
+            const Text(
+              'A conta fica salva apenas nesta máquina; nada é enviado para a nuvem.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+      onSubmit: submit,
+      actions: [
+        dialogButton('Cancel',
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => close(false),
+            isOutline: true),
+        dialogButton('Save',
+            icon: const Icon(Icons.done_rounded), onPressed: submit),
+      ],
     );
-  }
+  });
 }
 
 class _Checkbox extends StatefulWidget {
@@ -2570,7 +2729,7 @@ class _AboutState extends State<_About> {
       final buildDate = data['buildDate'].toString();
       final fingerprint = data['fingerprint'].toString();
       final myId = data['myId'].toString();
-      const linkStyle = TextStyle(decoration: TextDecoration.underline);
+      final appName = getAppDisplayName();
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
@@ -2594,24 +2753,8 @@ class _AboutState extends State<_About> {
               SelectionArea(
                   child: Text('${translate('ID')}: $myId')
                       .marginSymmetric(vertical: 4.0)),
-              InkWell(
-                  onTap: () {
-                    launchUrlString('https://rustdesk.com/privacy.html');
-                  },
-                  child: Text(
-                    translate('Privacy Statement'),
-                    style: linkStyle,
-                  ).marginSymmetric(vertical: 4.0)),
-              InkWell(
-                  onTap: () {
-                    launchUrlString('https://rustdesk.com');
-                  },
-                  child: Text(
-                    translate('Website'),
-                    style: linkStyle,
-                  ).marginSymmetric(vertical: 4.0)),
               Container(
-                decoration: const BoxDecoration(color: Color(0xFF2c8cff)),
+                decoration: BoxDecoration(color: _accentColor),
                 padding:
                     const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
                 child: SelectionArea(
@@ -2626,7 +2769,7 @@ class _AboutState extends State<_About> {
                             style: const TextStyle(color: Colors.white),
                           ),
                           Text(
-                            translate('Slogan_tip'),
+                            '$appName — suporte remoto local, direto e sem nuvem.',
                             style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white),
