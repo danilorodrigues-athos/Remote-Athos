@@ -40,7 +40,9 @@ foreach ($protocol in @('TCP', 'UDP')) {
 Write-Host '  Regras de firewall removidas'
 
 $startMenu = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs'
+$publicDesktop = [Environment]::GetFolderPath('CommonDesktopDirectory')
 foreach ($shortcut in @(
+    (Join-Path $publicDesktop 'NO.lnk'),
     (Join-Path ([Environment]::GetFolderPath('Desktop')) 'NO.lnk'),
     (Join-Path $startMenu 'NO.lnk')
 )) {

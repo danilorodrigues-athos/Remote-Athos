@@ -49,7 +49,8 @@ foreach ($protocol in @('TCP', 'UDP')) {
 
 $shell = New-Object -ComObject WScript.Shell
 $startMenu = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs'
-foreach ($folder in @([Environment]::GetFolderPath('Desktop'), $startMenu)) {
+$publicDesktop = [Environment]::GetFolderPath('CommonDesktopDirectory')
+foreach ($folder in @($publicDesktop, $startMenu)) {
     $shortcut = $shell.CreateShortcut((Join-Path $folder 'NO.lnk'))
     $shortcut.TargetPath = $exe
     $shortcut.WorkingDirectory = $dst
