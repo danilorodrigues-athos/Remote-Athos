@@ -22,6 +22,7 @@ class LanScanner {
     Duration timeout = const Duration(seconds: 1),
   }) async {
     final ips = await NetworkTools.localIPv4s();
+    final ownIps = ips.toSet();
     final subnets = <String>{};
     for (final ip in ips) {
       final parts = ip.split('.');
@@ -34,6 +35,7 @@ class LanScanner {
       final tasks = <Future<void>>[];
       for (var i = 1; i <= 254; i++) {
         final target = '$subnet.$i';
+        if (ownIps.contains(target)) continue;
         tasks.add(Future(() async {
           if (await NetworkTools.probe(target, port: port, timeout: timeout)) {
             found.add(target);
@@ -68,9 +70,14 @@ class LanScanner {
       for (final match in pattern.allMatches(out)) {
         final ip = match.group(1);
         final mac = match.group(2);
-        if (ip != null && mac != null && !mac.contains('-00-00-00')) {
-          map[ip] = mac;
-        }
+        if (ip == null || mac == null) continue;
+        final compact =
+            mac.replaceAll(RegExp(r'[^0-9a-fA-F]'), '').toLowerCase();
+        if (compact.length != 12 || compact == '000000000000') continue;
+        final firstOctet = int.tryParse(compact.substring(0, 2), radix: 16);
+        // Skip broadcast/multicast entries, which are not host adapters.
+        if (firstOctet == null || (firstOctet & 1) == 1) continue;
+        map[ip] = mac;
       }
       return map;
     } catch (e) {

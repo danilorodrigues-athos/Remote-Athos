@@ -123,7 +123,7 @@ impl Drop for SimpleCallOnReturn {
 /// Product name of this fork. Applied in `global_init`, before any config path is
 /// resolved: `APP_NAME` decides the config directory, the IPC pipe name and the
 /// Windows service name.
-pub const FORK_APP_NAME: &str = "ATHOSDESK";
+pub const FORK_APP_NAME: &str = "NO";
 
 pub fn global_init() -> bool {
     *hbb_common::config::APP_NAME.write().unwrap() = FORK_APP_NAME.to_owned();

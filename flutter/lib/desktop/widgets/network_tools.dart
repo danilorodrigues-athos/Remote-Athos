@@ -102,18 +102,18 @@ class NetworkTools {
       const script = r"""
 $ErrorActionPreference = 'Stop'
 $rules = @(
-  @{n='ATHOSDESK 21118 TCP'; p='TCP'},
-  @{n='ATHOSDESK 21118 UDP'; p='UDP'}
+  @{n='NO 21118 TCP'; p='TCP'},
+  @{n='NO 21118 UDP'; p='UDP'}
 )
 foreach ($r in $rules) {
   if (-not (Get-NetFirewallRule -DisplayName $r.n -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName $r.n -Direction Inbound -Protocol $r.p -LocalPort 21118 -Action Allow -Profile Any | Out-Null
   }
 }
-'ATHOSDESK firewall rules applied.'
+'NO firewall rules applied.'
 """;
       final path =
-          '${Directory.systemTemp.path}${Platform.pathSeparator}athosdesk-fix-firewall.ps1';
+          '${Directory.systemTemp.path}${Platform.pathSeparator}no-fix-firewall.ps1';
       final file = File(path);
       await file.writeAsString(script, flush: true);
       final command =

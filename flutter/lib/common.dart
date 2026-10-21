@@ -3020,8 +3020,13 @@ int versionCmp(String v1, String v2) {
   return bind.versionToNumber(v: v1) - bind.versionToNumber(v: v2);
 }
 
-String getWindowName({WindowType? overrideType}) {
+String getAppDisplayName() {
   final name = bind.mainGetAppNameSync();
+  return name == 'NO' ? 'NÓ' : name;
+}
+
+String getWindowName({WindowType? overrideType}) {
+  final name = getAppDisplayName();
   switch (overrideType ?? kWindowType) {
     case WindowType.Main:
       return name;

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:flutter_hbb/models/platform_model.dart';
 
-const kAuditLogOptionKey = 'athos-clients-audit';
+const kAuditLogOptionKey = 'no-clients-audit';
 const _kMaxEntries = 200;
 
 class AuditEntry {

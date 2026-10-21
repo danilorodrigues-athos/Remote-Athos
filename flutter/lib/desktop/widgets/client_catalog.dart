@@ -10,10 +10,11 @@ import 'package:flutter_hbb/desktop/widgets/audit_log.dart';
 import 'package:flutter_hbb/desktop/widgets/lan_scan.dart';
 import 'package:flutter_hbb/desktop/widgets/network_tools.dart';
 import 'package:flutter_hbb/desktop/widgets/secure_storage.dart';
+import 'package:flutter_hbb/desktop/widgets/update_checker.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const kClientsCatalogOptionKey = 'athos-clients-catalog';
+const kClientsCatalogOptionKey = 'no-clients-catalog';
 
 class CatalogMachine {
   CatalogMachine({
@@ -276,9 +277,9 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
 
   Future<void> _exportCatalog() async {
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Exportar catálogo ATHOSDESK',
+      dialogTitle: 'Exportar catálogo NÓ',
       fileName:
-          'athosdesk-catalogo-${DateTime.now().toIso8601String().substring(0, 10)}.json',
+          'no-catalogo-${DateTime.now().toIso8601String().substring(0, 10)}.json',
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
@@ -317,7 +318,7 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
     final phone = client.phone.trim().replaceAll(RegExp(r'[^\d]'), '');
     if (phone.isEmpty) return;
     final message = Uri.encodeComponent(
-        'Olá! Aqui é o suporte ATHOSDESK. Posso ligar para você?');
+        'Olá! Aqui é o suporte NÓ. Posso ligar para você?');
     launchUrl(Uri.parse('https://wa.me/$phone?text=$message'),
         mode: LaunchMode.externalApplication);
   }
@@ -587,6 +588,16 @@ class _ClientsCatalogViewState extends State<ClientsCatalogView> {
               onPressed: _showAudit,
               icon: const Icon(Icons.history_rounded, size: 15),
               label: const Text('Histórico'),
+              style: TextButton.styleFrom(
+                foregroundColor: MyTheme.accent,
+                textStyle: const TextStyle(fontSize: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => showUpdateDialog(context),
+              icon: const Icon(Icons.system_update_alt_rounded, size: 15),
+              label: const Text('Atualizações'),
               style: TextButton.styleFrom(
                 foregroundColor: MyTheme.accent,
                 textStyle: const TextStyle(fontSize: 12),
