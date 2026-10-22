@@ -1261,6 +1261,9 @@ class FfiModel with ChangeNotifier {
 
   void _queryAuditGuid(String peerId) async {
     try {
+      if (!allowCloudAuditNotes()) {
+        return;
+      }
       if (bind.isDisableAccount()) {
         return;
       }

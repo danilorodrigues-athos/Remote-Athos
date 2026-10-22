@@ -1587,8 +1587,14 @@ showAuditDialog(FFI ffi) async {
   });
 }
 
+// NÓ: notas de conexão e auditoria em nuvem ficam desligadas por padrão.
+// A opção pode ser reativada apenas em um build que defina
+// NO_ALLOW_CLOUD_AUDIT_NOTES=true.
+bool allowCloudAuditNotes() =>
+    const bool.fromEnvironment('NO_ALLOW_CLOUD_AUDIT_NOTES');
+
 bool allowAskForNoteAtEndOfConnection(FFI? ffi, bool closedByControlling) {
-  if (ffi == null) {
+  if (ffi == null || !allowCloudAuditNotes()) {
     return false;
   }
   return mainGetLocalBoolOptionSync(kOptionAllowAskForNoteAtEndOfConnection) &&
