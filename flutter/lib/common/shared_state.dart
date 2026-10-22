@@ -78,10 +78,12 @@ class ConnectionType {
   final Rx<String> _secure = kInvalidValueStr.obs;
   final Rx<String> _direct = kInvalidValueStr.obs;
   final Rx<String> _stream_type = kInvalidValueStr.obs;
+  final RxInt _latency = 0.obs;
 
   Rx<String> get secure => _secure;
   Rx<String> get direct => _direct;
   Rx<String> get stream_type => _stream_type;
+  RxInt get latency => _latency;
 
   static String get strSecure => 'secure';
   static String get strInsecure => 'insecure';
@@ -98,6 +100,10 @@ class ConnectionType {
 
   void setStreamType(String v) {
     _stream_type.value = v;
+  }
+
+  void setLatency(int ms) {
+    _latency.value = ms;
   }
 
   bool isValid() {

@@ -145,7 +145,7 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
         selectedBorderColor: MyTheme.accent,
         pageViewBuilder: (pageView) => pageView,
         labelGetter: DesktopTab.tablabelGetter,
-        tabBuilder: (key, icon, label, themeConf) => Obx(() {
+        tabBuilder: (key, icon, label, _) => Obx(() {
           final connectionType = ConnectionTypeState.find(key);
           if (!connectionType.isValid()) {
             return Row(
@@ -162,6 +162,11 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
                 connectionType.direct.value == ConnectionType.strDirect;
             String msgConn = getConnectionText(
                 secure, direct, connectionType.stream_type.value);
+            final latency = connectionType.latency.value;
+            final transport = direct ? 'Direto' : 'Relay';
+            final transportColor =
+                !secure ? Colors.red : (direct ? Colors.green : Colors.orange);
+            final latencyText = latency > 0 ? ' · ${latency}ms' : '';
             var msgFingerprint = '${translate('Fingerprint')}:\n';
             var fingerprint = FingerprintState.find(key).value;
             if (fingerprint.isEmpty) {
@@ -180,12 +185,38 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
               children: [
                 icon,
                 Tooltip(
-                  message: '$msgConn\n$msgFingerprint',
-                  child: SvgPicture.asset(
-                    'assets/${connectionType.secure.value}${connectionType.direct.value}.svg',
-                    width: themeConf.iconSize,
-                    height: themeConf.iconSize,
-                  ).paddingOnly(right: 5),
+                  message: '$msgConn'
+                      '${latency > 0 ? '\nRTT: ${latency}ms' : ''}\n'
+                      '$msgFingerprint',
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: transportColor.withAlpha(28),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: transportColor.withAlpha(90)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/${connectionType.secure.value}${connectionType.direct.value}.svg',
+                          width: 12,
+                          height: 12,
+                        ).paddingOnly(right: 3),
+                        Text(
+                          '$transport$latencyText',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: transportColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 label,
                 unreadMessageCountBuilder(UnreadChatCountState.find(key))

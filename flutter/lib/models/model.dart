@@ -276,6 +276,7 @@ class FfiModel with ChangeNotifier {
       connectionType.setSecure(secure);
       connectionType.setDirect(direct);
       connectionType.setStreamType(streamType);
+      connectionType.setLatency(0);
     } catch (e) {
       //
     }
@@ -395,6 +396,14 @@ class FfiModel with ChangeNotifier {
         parent.target?.serverModel.onClientRemove(evt);
       } else if (name == 'update_quality_status') {
         parent.target?.qualityMonitorModel.updateQualityStatus(evt);
+        final delay = int.tryParse(evt['delay']?.toString() ?? '');
+        if (delay != null && delay >= 0) {
+          try {
+            ConnectionTypeState.find(peerId).setLatency(delay);
+          } catch (_) {
+            // No tab state yet; the next status tick will retry.
+          }
+        }
       } else if (name == 'update_block_input_state') {
         updateBlockInputState(evt, peerId);
       } else if (name == 'update_privacy_mode') {
