@@ -178,7 +178,15 @@ jobs:
             throw "Desinstalador retornou $($uninstall.ExitCode)."
           }
 
+          for ($i = 0; $i -lt 30 -and (Test-Path $appDir); $i++) {
+            Start-Sleep -Seconds 1
+          }
           if (Test-Path $appDir) {
+            Write-Host '--- conteúdo restante em Program Files\NO ---'
+            Get-ChildItem $appDir -Force -Recurse -ErrorAction SilentlyContinue | Select-Object FullName, Length | Format-Table -AutoSize
+            Get-Content $uninstallLog -Tail 200 -ErrorAction SilentlyContinue
+            Get-Process -Name 'NO' -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime | Format-List
+            Get-Service -Name 'NO' -ErrorAction SilentlyContinue | Format-List Name, Status
             throw 'A pasta Program Files\NO não foi removida.'
           }
           if (-not (Test-Path $preserve)) {
