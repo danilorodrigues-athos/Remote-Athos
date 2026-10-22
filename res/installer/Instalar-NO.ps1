@@ -42,7 +42,7 @@ try {
   Write-Host "Origem: $src"
   Write-Host "Destino: $dst"
 
-  Get-Process NO, rustdesk -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Get-Process NO -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Seconds 2
 
   $svc = Get-Service -Name NO -ErrorAction SilentlyContinue

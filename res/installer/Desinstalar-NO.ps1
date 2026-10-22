@@ -40,7 +40,7 @@ try {
 try {
   Write-Host "Desinstalando $app..." -ForegroundColor Cyan
 
-  Get-Process NO, rustdesk -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Get-Process NO -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Seconds 2
 
   $svc = Get-Service -Name NO -ErrorAction SilentlyContinue
