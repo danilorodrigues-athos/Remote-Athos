@@ -16,6 +16,7 @@ import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/client_catalog.dart';
 import 'package:flutter_hbb/desktop/widgets/network_tools.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
+import 'package:flutter_hbb/desktop/widgets/vpn_panel.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -262,6 +263,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               ),
             );
           }),
+          const SizedBox(height: 16),
+          const VpnPanel(),
+          const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerLeft,
             child: SizedBox(
