@@ -54,9 +54,8 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
      `%TEMP%\NO-install.log`.
 
 > **A janela fecha sem instalar?** Use `Instalar-NO.cmd` e aceite o UAC.
-> O comando **Executar com PowerShell** do menu do Windows não eleva sozinho;
-> sem administrador, a cópia para `C:\Program Files` e as regras de firewall
-> falham.
+> Se a elevação for recusada, a cópia para `C:\Program Files` e as regras de
+> firewall falham.
 3. Abra o NÓ e confira no card **"Este dispositivo"**:
    - **Serviço: Ativo** (se aparecer **Instalar**, clique e aceite o UAC).
    - **Rede**: o instalador já criou as regras para Domínio, Particular e Público.
@@ -145,6 +144,9 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
       fechar e abrir o NÓ.
 - [ ] Sobre NÓ não tem links para `rustdesk.com` e mostra a frase da marca.
 - [ ] Instalador copia para Program Files e cria atalhos.
+- [ ] Entrada **NÓ - suporte remoto local** aparece em Aplicativos e recursos.
+- [ ] Desinstalar remove o app e preserva `%APPDATA%\NO`.
+- [ ] Aba remota mostra **Direto** ou **Relay** e a latência quando disponível.
 - [ ] Sessão por IP direto funciona sem internet.
 - [ ] Mouse, teclado, H.264 e área de transferência.
 
