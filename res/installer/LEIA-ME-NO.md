@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `94082ec49` (branch `master`).
+Build: commit `246c6209c` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -10,7 +10,8 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Atualizações offline (L3)**: pasta compartilhada com `no-version.json`; o app
   compara a versão e mostra o pacote disponível.
 - **Instalador (L4)**: `Instalar-NO.ps1` copia para `Program Files\NO`, cria atalhos,
-  libera a porta 21118 e instala o serviço do Windows.
+  libera a porta 21118, instala o serviço do Windows e registra a entrada de
+  desinstalação em **Aplicativos e recursos**.
 - **Renomeação (L4)**: serviço, pipe, pasta de configuração e regras de firewall
   agora usam `NO`.
 - **Cards de atualização/instalação do upstream desativados no Windows**: a
@@ -21,6 +22,12 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   entrada e privacidade. Na conexão remota, chat, áudio e gravação não aparecem.
 - **Senha permanente**: o diálogo "Definir Senha" agora exige só o tamanho
   mínimo de 8 caracteres; não exige dígito, maiúscula, minúscula nem especial.
+- **Login do RustDesk removido**: a seção Account no mobile, a opção Note e o
+  botão Note da sessão não existem mais; nenhum caminho visível abre OAuth ou a
+  nuvem do RustDesk. A aba **Conta** local continua disponível no desktop.
+- **Indicador de conexão**: a aba da sessão mostra **Direto** ou **Relay** e a
+  latência em ms quando o par informa a medição. A conexão por IP direto não
+  depende de servidor público.
 - **Conta local**: a aba **Conta** agora cria uma conta só nesta máquina —
   o nome fica em `%APPDATA%\NO` e a senha local é protegida com DPAPI.
   Não abre Google, GitHub ou Microsoft e não usa o cadastro do RustDesk.
