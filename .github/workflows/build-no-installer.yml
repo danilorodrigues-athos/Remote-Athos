@@ -1,4 +1,4 @@
-name: Build NÓ installer
+﻿name: Build NÓ installer
 
 # Gera o Instalar-NO.exe a partir de um artefato Windows x64 já construído.
 # O instalador é único, não assinado e inclui o payload do NÓ.
@@ -93,6 +93,87 @@ jobs:
           Get-FileHash $out -Algorithm SHA256 | Format-List
           $sig = Get-AuthenticodeSignature $out
           Write-Host "Assinatura: $($sig.Status)"
+
+      - name: Smoke test installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Join-Path $PWD 'installer-output\Instalar-NO.exe'
+          $appDir = Join-Path $env:ProgramFiles 'NO'
+          $profileDir = Join-Path $env:APPDATA 'NO'
+          $preserve = Join-Path $profileDir 'preserve-test.txt'
+
+          New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+          Set-Content -Path $preserve -Value 'preservar' -Encoding UTF8
+
+          $install = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait -PassThru
+          if ($install.ExitCode -ne 0) {
+            throw "Instalador retornou $($install.ExitCode)."
+          }
+          if (-not (Test-Path (Join-Path $appDir 'NO.exe'))) {
+            throw 'NO.exe não foi instalado em Program Files.'
+          }
+
+          $svc = $null
+          for ($i = 0; $i -lt 15; $i++) {
+            $svc = Get-Service -Name 'NO' -ErrorAction SilentlyContinue
+            if ($svc -and $svc.Status -eq 'Running') { break }
+            Start-Sleep -Seconds 1
+          }
+          if (-not $svc -or $svc.Status -ne 'Running') {
+            throw "Serviço NO não está em execução (status: $($svc.Status))."
+          }
+
+          foreach ($name in @('NO 21118 TCP', 'NO 21118 UDP')) {
+            if (-not (Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue)) {
+              throw "Regra de firewall ausente: $name"
+            }
+          }
+
+          $entry = Get-ChildItem 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+            ForEach-Object { Get-ItemProperty $_.PSPath } |
+            Where-Object { $_.DisplayName -eq 'NÓ - suporte remoto local' } |
+            Select-Object -First 1
+          if (-not $entry) {
+            throw 'Entrada de desinstalação não registrada.'
+          }
+
+          if (-not (Test-Path (Join-Path $env:PUBLIC 'Desktop\NÓ.lnk'))) {
+            throw 'Atalho da área de trabalho não criado.'
+          }
+          if (-not (Test-Path (Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\NÓ.lnk'))) {
+            throw 'Atalho do Menu Iniciar não criado.'
+          }
+          if (-not (Test-Path (Join-Path $env:TEMP 'NO-install.log'))) {
+            throw 'Log da instalação não criado.'
+          }
+
+          $uninstaller = Join-Path $appDir 'unins000.exe'
+          if (-not (Test-Path $uninstaller)) {
+            throw 'Desinstalador não encontrado.'
+          }
+          $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) {
+            throw "Desinstalador retornou $($uninstall.ExitCode)."
+          }
+
+          if (Test-Path $appDir) {
+            throw 'A pasta Program Files\NO não foi removida.'
+          }
+          if (-not (Test-Path $preserve)) {
+            throw 'O perfil %APPDATA%\NO não foi preservado.'
+          }
+          if (Get-Service -Name 'NO' -ErrorAction SilentlyContinue) {
+            throw 'O serviço NO não foi removido.'
+          }
+          foreach ($name in @('NO 21118 TCP', 'NO 21118 UDP')) {
+            if (Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue) {
+              throw "Regra de firewall não removida: $name"
+            }
+          }
+
+          Remove-Item $profileDir -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'Smoke test do instalador: OK'
 
       - name: Upload installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
