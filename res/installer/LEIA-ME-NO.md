@@ -20,7 +20,8 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   entrada e privacidade. Na conexão remota, chat, áudio e gravação não aparecem.
 - **Senha permanente**: o diálogo "Definir Senha" agora exige só o tamanho
   mínimo de 8 caracteres; não exige dígito, maiúscula, minúscula nem especial.
-- **Login do RustDesk removido**: a seção Account no mobile, a opção Note e o
+- **Login do RustDesk removido**: as abas **Endereços** e **Dispositivos
+  acessíveis** saíram da interface; a seção Account no mobile, a opção Note e o
   botão Note da sessão não existem mais; a nota/auditoria automática em nuvem
   fica desligada. Nenhum caminho visível abre OAuth ou a nuvem do RustDesk.
   A aba **Conta** local continua disponível no desktop.
