@@ -414,6 +414,32 @@ jobs:
           pip3 install requests argparse
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./rustdesk/
 
+      - name: Build NÓ installer
+        if: env.UPLOAD_ARTIFACT == 'true' && matrix.job.arch == 'x86_64'
+        shell: pwsh
+        run: |
+          $payload = Join-Path $PWD 'installer-payload'
+          Remove-Item $payload -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $payload | Out-Null
+          Get-ChildItem -Path 'rustdesk' -Force | Copy-Item -Destination $payload -Recurse -Force
+          Rename-Item (Join-Path $payload 'rustdesk.exe') 'NO.exe'
+          Copy-Item 'res\installer\LEIA-ME-NO.md' $payload -Force
+          Copy-Item 'res\installer\modelo-no-version.json' $payload -Force
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao instalar o Inno Setup."
+          }
+          & .\res\installer\build-no-installer.ps1 -PayloadDir $payload -OutputDir (Join-Path $PWD 'installer-output')
+
+      - name: Upload NÓ installer
+        if: env.UPLOAD_ARTIFACT == 'true' && matrix.job.arch == 'x86_64'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: NO-Installer-x64
+          path: installer-output/Instalar-NO.exe
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Verify Windows Flutter version
         if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true'
         shell: powershell

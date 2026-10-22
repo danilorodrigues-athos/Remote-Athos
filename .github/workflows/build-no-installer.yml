@@ -1,0 +1,103 @@
+name: Build NÓ installer
+
+# Gera o Instalar-NO.exe a partir de um artefato Windows x64 já construído.
+# O instalador é único, não assinado e inclui o payload do NÓ.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID com rustdesk-unsigned-windows-x86_64 (vazio = artefato mais recente)"
+        required: false
+        default: ""
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build-installer:
+    runs-on: windows-2022
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve Windows artifact
+        id: artifact
+        shell: pwsh
+        run: |
+          $runId = "${{ inputs.run_id }}".Trim()
+          if (-not $runId) {
+            $json = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=rustdesk-unsigned-windows-x86_64&per_page=100"
+            $items = ($json | ConvertFrom-Json).artifacts |
+              Where-Object { -not $_.expired } |
+              Sort-Object created_at -Descending
+            if (-not $items) {
+              throw "Nenhum artefato rustdesk-unsigned-windows-x86_64 disponível."
+            }
+            $runId = [string]$items[0].workflow_run.id
+          }
+          "run_id=$runId" >> $env:GITHUB_OUTPUT
+          Write-Host "Run ID: $runId"
+
+      - name: Download Windows app artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path payload | Out-Null
+          gh run download "${{ steps.artifact.outputs.run_id }}" -R $env:GITHUB_REPOSITORY -n rustdesk-unsigned-windows-x86_64 -D payload
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao baixar o artefato Windows."
+          }
+
+      - name: Prepare installer payload
+        id: payload
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem payload -Recurse -Filter rustdesk.exe | Select-Object -First 1
+          if (-not $exe) {
+            throw "rustdesk.exe não encontrado no artefato."
+          }
+          $dir = $exe.Directory.FullName
+          Rename-Item $exe.FullName 'NO.exe'
+          Copy-Item 'res\installer\LEIA-ME-NO.md' $dir -Force
+          Copy-Item 'res\installer\modelo-no-version.json' $dir -Force
+          "payload_dir=$dir" >> $env:GITHUB_OUTPUT
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao instalar o Inno Setup."
+          }
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          & .\res\installer\build-no-installer.ps1 `
+            -PayloadDir "${{ steps.payload.outputs.payload_dir }}" `
+            -OutputDir "$PWD\installer-output"
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD 'installer-output\Instalar-NO.exe'
+          if (-not (Test-Path $out)) {
+            throw "Instalador não gerado."
+          }
+          Get-Item $out | Select-Object FullName, Length, LastWriteTime | Format-List
+          Get-FileHash $out -Algorithm SHA256 | Format-List
+          $sig = Get-AuthenticodeSignature $out
+          Write-Host "Assinatura: $($sig.Status)"
+
+      - name: Upload installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: NO-Installer-x64
+          path: installer-output/Instalar-NO.exe
+          if-no-files-found: error
+          retention-days: 90

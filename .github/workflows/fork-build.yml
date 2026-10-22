@@ -10,7 +10,7 @@ name: Fork build
 # `MACOS_P12_BASE64`, `ANDROID_SIGNING_KEY` or `RUSTDESK_UPDATE_ED25519_SEED`
 # skips signing and uploads unsigned artifacts.
 #
-# Windows artifact: rustdesk-unsigned-windows-x64.
+# Windows artifacts: rustdesk-unsigned-windows-x86_64 and NO-Installer-x64.
 
 on:
   workflow_dispatch:

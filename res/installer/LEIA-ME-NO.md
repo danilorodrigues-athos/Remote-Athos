@@ -9,9 +9,7 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   e metadados do executável. Todo o nome ATHOS e o arqueiro foram removidos.
 - **Atualizações offline (L3)**: pasta compartilhada com `no-version.json`; o app
   compara a versão e mostra o pacote disponível.
-- **Instalador (L4)**: `Instalar-NO.ps1` copia para `Program Files\NO`, cria atalhos,
-  libera a porta 21118, instala o serviço do Windows e registra a entrada de
-  desinstalação em **Aplicativos e recursos**.
+- **Instalador (L4)**: `Instalar-NO.exe` é um único EXE (Inno Setup) que copia o NÓ para `Program Files\NO`, cria atalhos, libera a porta 21118, instala o serviço, registra a desinstalação e abre o aplicativo.
 - **Renomeação (L4)**: serviço, pipe, pasta de configuração e regras de firewall
   agora usam `NO`.
 - **Cards de atualização/instalação do upstream desativados no Windows**: a
@@ -46,20 +44,17 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 
 ## Instalação recomendada (máquina controlada)
 
-1. Copie esta pasta para a máquina.
-2. Execute `Instalar-NO.cmd` (duplo clique) e aceite o UAC.
-   - Também funciona clicar com o botão direito em `Instalar-NO.ps1` →
-     **Executar com PowerShell**; o script solicita a elevação sozinho.
-   - O script copia para `C:\Program Files\NO`, cria atalhos, libera a porta 21118,
-     instala o serviço e registra a entrada em **Aplicativos e recursos**.
-   - Se o NÓ abrir sozinho ao final da instalação, feche essa janela e abra pelo
-     atalho. O atalho inicia o app **sem** privilégios de administrador.
-   - Se algo falhar, a janela mostra o erro e o log fica em
+1. Copie `Instalar-NO.exe` para a máquina.
+2. Dê duplo clique e aceite o UAC.
+   - O instalador é um único EXE e **não é assinado**. O Windows pode mostrar
+     "editor desconhecido" ou o aviso do SmartScreen; use **Mais informações →
+     Executar assim mesmo**.
+   - Ele copia o NÓ para `C:\Program Files\NO`, cria os atalhos, libera a porta
+     21118, instala o serviço, registra a desinstalação em **Aplicativos e
+     recursos** e abre o NÓ ao final.
+   - O instalador executa como administrador; o NÓ é aberto com o usuário normal.
+   - Se algo falhar, o instalador mostra o erro. O log fica em
      `%TEMP%\NO-install.log`.
-
-> **A janela fecha sem instalar?** Use `Instalar-NO.cmd` e aceite o UAC.
-> Se a elevação for recusada, a cópia para `C:\Program Files` e as regras de
-> firewall falham.
 3. Abra o NÓ e confira no card **"Este dispositivo"**:
    - **Serviço: Ativo** (se aparecer **Instalar**, clique e aceite o UAC).
    - **Rede**: o instalador já criou as regras para Domínio, Particular e Público.
@@ -67,6 +62,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
      continua liberada. **Aplicar** recria as regras e não é obrigatório.
 4. Defina uma **senha permanente** em **Configurações → Segurança**.
 5. No roteador, faça uma **reserva DHCP por MAC** para o IP não mudar.
+
+> O ZIP portátil e os scripts `Instalar-NO.ps1`/`Instalar-NO.cmd` continuam
+> disponíveis como alternativa, mas o caminho recomendado é o `Instalar-NO.exe`.
 
 ## Modo portátil (sem instalar)
 
@@ -80,12 +78,13 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 1. Abra **Configurações → Aplicativos → Aplicativos e recursos** (Windows 10) ou
    **Aplicativos instalados** (Windows 11), localize **NÓ - suporte remoto local**
    e clique em **Desinstalar**. Aceite o UAC.
-   - A entrada funciona mesmo se a pasta do ZIP for movida: o instalador copia os
-     scripts de desinstalação para `C:\ProgramData\NO`.
-   - Também é possível executar `Desinstalar-NO.cmd` do pacote e aceitar o UAC.
-2. O script remove o serviço, `C:\Program Files\NO`, as regras de firewall, os
-   atalhos, a entrada de Aplicativos e recursos e os scripts auxiliares em
-   `C:\ProgramData\NO`. O log fica em `%TEMP%\NO-uninstall.log`.
+   - O `Instalar-NO.exe` registra o desinstalador do Inno Setup; a entrada funciona
+     mesmo se o instalador original for apagado.
+   - Também é possível executar `Desinstalar-NO.cmd` do pacote portátil, caso ele
+     tenha sido usado.
+2. O desinstalador remove o serviço, `C:\Program Files\NO`, as regras de firewall,
+   os atalhos e a entrada de Aplicativos e recursos. O log da instalação fica em
+   `%TEMP%\NO-install.log`.
 3. `%APPDATA%\NO` (ID, senha, catálogo e pasta de atualizações) é **preservado**.
    Para apagar tudo, exclua essa pasta manualmente.
 
@@ -112,13 +111,16 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 ## Renomeação e assinatura (L4)
 
 - Executável entregue: `NO.exe`; serviço, pipe e configuração: `NO`.
+- O `Instalar-NO.exe` é um EXE único, gerado pelo Inno Setup, e **não é assinado**.
+  O Windows/SmartScreen pode mostrar "editor desconhecido"; isso não impede a
+  instalação.
 - O MSI gerado pelo build continua sendo o do upstream RustDesk e **não é
-  distribuído**. Use o ZIP portátil + `Instalar-NO.ps1`.
-- **Assinatura de código**: este build não tem certificado. Para assinar, é preciso
-  um certificado Authenticode e configurar os secrets de assinatura no workflow.
-  Sem isso, o Windows/SmartScreen mostra "editor desconhecido".
+  distribuído**. O caminho recomendado é o `Instalar-NO.exe`; o ZIP portátil
+  continua disponível como alternativa.
 - Identificadores internos `rustdesk` (DLL, crate, AppID) permanecem; eles não
   aparecem na interface.
+- Se no futuro houver um certificado de code signing, o mesmo instalador pode ser
+  assinado antes da distribuição, sem mudar o fluxo de instalação.
 
 ## Migração do ATHOSDESK
 
@@ -148,7 +150,7 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Conta local não mostra Google/GitHub/Microsoft; a conta permanece após
       fechar e abrir o NÓ.
 - [ ] Sobre NÓ não tem links para `rustdesk.com` e mostra a frase da marca.
-- [ ] Instalador copia para Program Files e cria atalhos.
+- [ ] Instalador EXE copia para Program Files, cria atalhos e abre o NÓ.
 - [ ] Entrada **NÓ - suporte remoto local** aparece em Aplicativos e recursos.
 - [ ] Desinstalar remove o app e preserva `%APPDATA%\NO`.
 - [ ] Aba remota mostra **Direto** ou **Relay** e a latência quando disponível.
