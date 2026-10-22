@@ -192,8 +192,27 @@ jobs:
           if (-not (Test-Path $preserve)) {
             throw 'O perfil %APPDATA%\NO não foi preservado.'
           }
+
+          for ($i = 0; $i -lt 30 -and (Get-Service -Name 'NO' -ErrorAction SilentlyContinue); $i++) {
+            Start-Sleep -Seconds 1
+          }
           if (Get-Service -Name 'NO' -ErrorAction SilentlyContinue) {
             throw 'O serviço NO não foi removido.'
+          }
+          foreach ($shortcut in @(
+            (Join-Path $env:PUBLIC 'Desktop\NÓ.lnk'),
+            (Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\NÓ.lnk')
+          )) {
+            if (Test-Path $shortcut) {
+              throw "Atalho não removido: $shortcut"
+            }
+          }
+          $entryAfter = Get-ChildItem 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+            ForEach-Object { Get-ItemProperty $_.PSPath } |
+            Where-Object { $_.DisplayName -eq 'NÓ - suporte remoto local' } |
+            Select-Object -First 1
+          if ($entryAfter) {
+            throw 'Entrada de desinstalação não removida.'
           }
           foreach ($name in @('NO 21118 TCP', 'NO 21118 UDP')) {
             if (Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue) {
