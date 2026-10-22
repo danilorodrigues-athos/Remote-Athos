@@ -106,8 +106,20 @@ jobs:
           New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
           Set-Content -Path $preserve -Value 'preservar' -Encoding UTF8
 
-          $install = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait -PassThru
+          $installLog = Join-Path $PWD 'installer-output\install.log'
+          $install = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/LOG=$installLog" -PassThru
+          if (-not $install.WaitForExit(120000)) {
+            Write-Host '--- install.log (timeout) ---'
+            Get-Content $installLog -Tail 200 -ErrorAction SilentlyContinue
+            Get-Process -Name 'NO' -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime | Format-List
+            Get-Service -Name 'NO' -ErrorAction SilentlyContinue | Format-List Name, Status
+            if (-not $install.HasExited) {
+              Stop-Process -Id $install.Id -Force -ErrorAction SilentlyContinue
+            }
+            throw 'Instalador não terminou em 120 segundos.'
+          }
           if ($install.ExitCode -ne 0) {
+            Get-Content $installLog -Tail 200 -ErrorAction SilentlyContinue
             throw "Instalador retornou $($install.ExitCode)."
           }
           if (-not (Test-Path (Join-Path $appDir 'NO.exe'))) {
@@ -152,8 +164,17 @@ jobs:
           if (-not (Test-Path $uninstaller)) {
             throw 'Desinstalador não encontrado.'
           }
-          $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          $uninstallLog = Join-Path $PWD 'installer-output\uninstall.log'
+          $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$uninstallLog" -PassThru
+          if (-not $uninstall.WaitForExit(120000)) {
+            Get-Content $uninstallLog -Tail 200 -ErrorAction SilentlyContinue
+            if (-not $uninstall.HasExited) {
+              Stop-Process -Id $uninstall.Id -Force -ErrorAction SilentlyContinue
+            }
+            throw 'Desinstalador não terminou em 120 segundos.'
+          }
           if ($uninstall.ExitCode -ne 0) {
+            Get-Content $uninstallLog -Tail 200 -ErrorAction SilentlyContinue
             throw "Desinstalador retornou $($uninstall.ExitCode)."
           }
 
