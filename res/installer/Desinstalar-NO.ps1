@@ -87,7 +87,7 @@ try {
   if ($transcriptStarted) { try { Stop-Transcript | Out-Null } catch {} }
   Write-Host ''
   Read-Host 'Pressione Enter para fechar'
-  if ($scriptPath -and $scriptPath.StartsWith($uninstallDir, [StringComparison]::OrdinalIgnoreCase)) {
+  if (Test-Path $uninstallDir) {
     try {
       $cleanup = "ping 127.0.0.1 -n 3 >nul & rmdir /s /q `"$uninstallDir`""
       Start-Process -FilePath "$env:SystemRoot\System32\cmd.exe" -ArgumentList '/c', $cleanup -WindowStyle Hidden -WorkingDirectory $env:SystemRoot
