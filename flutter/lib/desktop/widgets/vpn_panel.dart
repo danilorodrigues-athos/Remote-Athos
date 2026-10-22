@@ -61,6 +61,7 @@ class _VpnPanelState extends State<VpnPanel> {
   Future<void> _copyIp(VpnStatus status) async {
     if (status.primaryIp.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: status.primaryIp));
+    if (!mounted) return;
     showToast('IP copiado: ${status.primaryIp}');
   }
 
@@ -121,7 +122,7 @@ class _VpnPanelState extends State<VpnPanel> {
                   ],
                 ),
               ),
-              if (_loading)
+              if (_loading || _refreshing)
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: SizedBox(

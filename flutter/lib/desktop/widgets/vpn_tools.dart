@@ -287,6 +287,7 @@ class VpnTools {
   static String _tailscaleDetail(String state, bool connected,
       {bool starting = false}) {
     if (starting) return 'Iniciando';
+    if (connected && state != 'NeedsLogin') return 'Conectado';
     switch (state) {
       case 'Running':
         return 'Conectado';
