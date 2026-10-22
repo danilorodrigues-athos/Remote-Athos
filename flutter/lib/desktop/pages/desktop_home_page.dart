@@ -83,7 +83,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               Expanded(
                 child: _railIndex == 0
                     ? _buildHome(context)
-                    : _railIndex == 4
+                    : _railIndex == 3
                         ? const ClientsCatalogView()
                         : _buildPeersPane(context),
               ),
@@ -127,17 +127,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           ),
           _railButton(
             context,
-            icon: Icons.contacts_rounded,
-            tooltip: translate('Address book'),
-            selected: _railIndex == 3,
-            onTap: () => _openPeerTab(3, 3),
-          ),
-          _railButton(
-            context,
             icon: Icons.groups_rounded,
             tooltip: 'Clientes',
-            selected: _railIndex == 4,
-            onTap: () => setState(() => _railIndex = 4),
+            selected: _railIndex == 3,
+            onTap: () => setState(() => _railIndex = 3),
           ),
           const Spacer(),
           _railButton(
@@ -200,11 +193,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           Row(
             children: [
               Text(
-                _railIndex == 1
-                    ? translate('Recent sessions')
-                    : _railIndex == 2
-                        ? translate('Favorites')
-                        : translate('Address book'),
+                _railIndex == 2
+                    ? translate('Favorites')
+                    : translate('Recent sessions'),
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
