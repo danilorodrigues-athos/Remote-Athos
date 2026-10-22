@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `70ebcc72c` (branch `master`).
+Build: commit `94082ec49` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -21,6 +21,13 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   entrada e privacidade. Na conexão remota, chat, áudio e gravação não aparecem.
 - **Senha permanente**: o diálogo "Definir Senha" agora exige só o tamanho
   mínimo de 8 caracteres; não exige dígito, maiúscula, minúscula nem especial.
+- **Conta local**: a aba **Conta** agora cria uma conta só nesta máquina —
+  o nome fica em `%APPDATA%\NO` e a senha local é protegida com DPAPI.
+  Não abre Google, GitHub ou Microsoft e não usa o cadastro do RustDesk.
+  A conta é um perfil local; ela não bloqueia a abertura do aplicativo.
+- **Sobre NÓ**: removidos os links "Declaração de Privacidade" e "Website"
+  (`rustdesk.com`); a página mantém versão, data de build, fingerprint, ID e
+  copyright, com a frase da marca NÓ no bloco azul.
 - **Escanear rede**: ignora os IPs da própria máquina e corrige o filtro de MAC.
 - Mantidos: catálogo de clientes, online/offline, hostname com auto-correção de IP,
   histórico, senhas com DPAPI, modo suporte e diagnóstico de firewall.
@@ -28,12 +35,20 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 ## Instalação recomendada (máquina controlada)
 
 1. Copie esta pasta para a máquina.
-2. Clique com o botão direito em `Instalar-NO.ps1` → **Executar com PowerShell**
-   (aceite o UAC).
-   - O script copia para `C:\Program Files\NO`, cria atalhos, libera a porta 21118
-     e solicita a instalação do serviço.
+2. Execute `Instalar-NO.cmd` (duplo clique) e aceite o UAC.
+   - Também funciona clicar com o botão direito em `Instalar-NO.ps1` →
+     **Executar com PowerShell**; o script solicita a elevação sozinho.
+   - O script copia para `C:\Program Files\NO`, cria atalhos, libera a porta 21118,
+     instala o serviço e registra a entrada em **Aplicativos e recursos**.
    - Se o NÓ abrir sozinho ao final da instalação, feche essa janela e abra pelo
      atalho. O atalho inicia o app **sem** privilégios de administrador.
+   - Se algo falhar, a janela mostra o erro e o log fica em
+     `%TEMP%\NO-install.log`.
+
+> **A janela fecha sem instalar?** Use `Instalar-NO.cmd` e aceite o UAC.
+> O comando **Executar com PowerShell** do menu do Windows não eleva sozinho;
+> sem administrador, a cópia para `C:\Program Files` e as regras de firewall
+> falham.
 3. Abra o NÓ e confira no card **"Este dispositivo"**:
    - **Serviço: Ativo** (se aparecer **Instalar**, clique e aceite o UAC).
    - **Rede**: o instalador já criou as regras para Domínio, Particular e Público.
@@ -51,10 +66,15 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 
 ## Desinstalação
 
-1. Clique com o botão direito em `Desinstalar-NO.ps1` → **Executar com PowerShell**
-   (aceite o UAC).
-2. O script remove o serviço, `C:\Program Files\NO`, as regras de firewall e os
-   atalhos.
+1. Abra **Configurações → Aplicativos → Aplicativos e recursos** (Windows 10) ou
+   **Aplicativos instalados** (Windows 11), localize **NÓ - suporte remoto local**
+   e clique em **Desinstalar**. Aceite o UAC.
+   - A entrada funciona mesmo se a pasta do ZIP for movida: o instalador copia os
+     scripts de desinstalação para `C:\ProgramData\NO`.
+   - Também é possível executar `Desinstalar-NO.cmd` do pacote e aceitar o UAC.
+2. O script remove o serviço, `C:\Program Files\NO`, as regras de firewall, os
+   atalhos, a entrada de Aplicativos e recursos e os scripts auxiliares em
+   `C:\ProgramData\NO`. O log fica em `%TEMP%\NO-uninstall.log`.
 3. `%APPDATA%\NO` (ID, senha, catálogo e pasta de atualizações) é **preservado**.
    Para apagar tudo, exclua essa pasta manualmente.
 
@@ -113,6 +133,9 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Atualizações: escolher pasta, verificar versão e abrir o pacote.
 - [ ] Janela de conexão mostra o card NÓ, o status e só as permissões úteis.
 - [ ] Definir Senha aceita qualquer combinação com pelo menos 8 caracteres.
+- [ ] Conta local não mostra Google/GitHub/Microsoft; a conta permanece após
+      fechar e abrir o NÓ.
+- [ ] Sobre NÓ não tem links para `rustdesk.com` e mostra a frase da marca.
 - [ ] Instalador copia para Program Files e cria atalhos.
 - [ ] Sessão por IP direto funciona sem internet.
 - [ ] Mouse, teclado, H.264 e área de transferência.
@@ -127,9 +150,11 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 
 ## Segurança
 
-- As senhas do catálogo são criptografadas com DPAPI do Windows, inclusive no
-  arquivo de backup. O backup restaurado em outra máquina não revela as senhas;
-  cadastre-as de novo lá.
+- As senhas do catálogo e a senha da conta local são criptografadas com DPAPI
+  do Windows, inclusive no arquivo de backup. O backup restaurado em outra
+  máquina não revela as senhas; cadastre-as de novo lá.
+- A conta local é um perfil salvo na máquina; para impedir o uso do NÓ por
+  outra pessoa, proteja o acesso ao Windows e à pasta `%APPDATA%\NO`.
 - Use uma senha permanente forte por máquina.
 - **Nunca exponha a porta 21118 na internet.** Para acesso externo, use
   WireGuard/Tailscale no roteador.
