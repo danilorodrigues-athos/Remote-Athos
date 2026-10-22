@@ -90,7 +90,7 @@ try {
   if ($scriptPath -and $scriptPath.StartsWith($uninstallDir, [StringComparison]::OrdinalIgnoreCase)) {
     try {
       $cleanup = "ping 127.0.0.1 -n 3 >nul & rmdir /s /q `"$uninstallDir`""
-      Start-Process -FilePath "$env:SystemRoot\System32\cmd.exe" -ArgumentList '/c', $cleanup -WindowStyle Hidden
+      Start-Process -FilePath "$env:SystemRoot\System32\cmd.exe" -ArgumentList '/c', $cleanup -WindowStyle Hidden -WorkingDirectory $env:SystemRoot
     } catch {}
   }
 }
