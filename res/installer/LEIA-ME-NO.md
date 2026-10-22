@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `bc90201d4` (branch `master`).
+Build: commit `4ccf65acb` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -29,6 +29,10 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Indicador de conexão**: a aba da sessão mostra **Direto** ou **Relay** e a
   latência em ms quando o par informa a medição. A conexão por IP direto não
   depende de servidor público.
+- **Painel VPN**: a tela inicial mostra **Radmin VPN** e **Tailscale**, com
+  status, IP virtual e atalhos para copiar o IP ou abrir o aplicativo oficial.
+  O NÓ só detecta a VPN já conectada; criar ou entrar na rede continua sendo
+  feito no aplicativo de cada VPN.
 - **Conta local**: a aba **Conta** agora cria uma conta só nesta máquina —
   o nome fica em `%APPDATA%\NO` e a senha local é protegida com DPAPI.
   Não abre Google, GitHub ou Microsoft e não usa o cadastro do RustDesk.
@@ -130,6 +134,7 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Janela abre com título **NÓ** e logo NÓ.
 - [ ] Ícone da janela/bandeja é o NÓ (não o arqueiro).
 - [ ] Card "Este dispositivo" mostra IP, serviço e rede.
+- [ ] Painel VPN detecta Radmin/Tailscale, mostra o IP virtual e abre o app.
 - [ ] Serviço instala e a máquina fica acessível após reiniciar.
 - [ ] Diagnóstico de rede aplica as regras do firewall.
 - [ ] Modo suporte mostra ID/IP/senha em tamanho legível.
@@ -167,5 +172,5 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
   outra pessoa, proteja o acesso ao Windows e à pasta `%APPDATA%\NO`.
 - Use uma senha permanente forte por máquina.
 - **Nunca exponha a porta 21118 na internet.** Para acesso externo, use
-  WireGuard/Tailscale no roteador.
+  Radmin VPN, WireGuard ou Tailscale.
 - Acompanhe os patches de segurança do RustDesk upstream.
