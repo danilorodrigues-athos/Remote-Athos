@@ -76,9 +76,6 @@ pub struct Session<T: InvokeUiSession> {
     pub reconnect_count: Arc<AtomicUsize>,
     pub last_audit_note: Arc<Mutex<String>>,
     pub audit_guid: Arc<Mutex<String>>,
-    // Timestamp of the outstanding latency probe. The controller sets it when
-    // sending a TestDelay; the echo consumes it so the reply is not echoed back.
-    pub last_ping_sent: Arc<Mutex<Option<Instant>>>,
     // Every cursor shape as the peer sent it, compressed, by the id the UI knows it by. The
     // peer sends a shape once, and a window asks for it whenever it has to draw it again.
     #[cfg(feature = "flutter")]
@@ -1935,16 +1932,6 @@ impl<T: InvokeUiSession> Interface for Session<T> {
 
     async fn handle_test_delay(&self, t: TestDelay, peer: &mut Stream) {
         if !t.from_client {
-            if let Some(sent) = self.last_ping_sent.lock().unwrap().take() {
-                let rtt = sent.elapsed().as_millis();
-                if rtt <= 5_000 {
-                    self.update_quality_status(QualityStatus {
-                        delay: Some(rtt as _),
-                        ..Default::default()
-                    });
-                }
-                return;
-            }
             self.update_quality_status(QualityStatus {
                 delay: Some(t.last_delay as _),
                 target_bitrate: Some(t.target_bitrate as _),

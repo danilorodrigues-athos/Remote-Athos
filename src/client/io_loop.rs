@@ -157,28 +157,6 @@ impl<T: InvokeUiSession> Remote<T> {
         }
     }
 
-    fn send_test_delay(&self) {
-        let now = Instant::now();
-        let mut pending = self.handler.last_ping_sent.lock().unwrap();
-        if let Some(sent) = pending.as_ref() {
-            if sent.elapsed() < Duration::from_secs(5) {
-                return;
-            }
-        }
-        *pending = Some(now);
-        drop(pending);
-
-        let mut msg = Message::new();
-        msg.set_test_delay(TestDelay {
-            time: get_time(),
-            from_client: false,
-            ..Default::default()
-        });
-        if self.sender.send(Data::Message(msg)).is_err() {
-            *self.handler.last_ping_sent.lock().unwrap() = None;
-        }
-    }
-
     pub async fn io_loop(&mut self, key: &str, token: &str, round: u32) {
         #[cfg(target_os = "windows")]
         let _file_clip_context_holder = {
@@ -285,7 +263,6 @@ impl<T: InvokeUiSession> Remote<T> {
                 let mut status_timer =
                     crate::rustdesk_interval(time::interval(Duration::new(1, 0)));
                 let mut fps_instant = Instant::now();
-                let mut last_ping = Instant::now();
 
                 let _keep_it = client::hc_connection(feedback, rendezvous_server, token).await;
                 let mut last_recv_time = Instant::now();
@@ -352,13 +329,6 @@ impl<T: InvokeUiSession> Remote<T> {
                             }
                         }
                         _ = status_timer.tick() => {
-                            if self.is_connected
-                                && self.handler.is_default()
-                                && last_ping.elapsed() >= Duration::from_secs(3)
-                            {
-                                last_ping = Instant::now();
-                                self.send_test_delay();
-                            }
                             if self.handler.is_restarting_remote_device()
                                 && last_recv_time.elapsed() >= RESTART_REMOTE_DEVICE_NO_DATA_TIMEOUT
                             {
