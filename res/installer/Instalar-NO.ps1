@@ -99,6 +99,7 @@ try {
   Copy-Item (Join-Path $src 'Desinstalar-NO.ps1') (Join-Path $uninstallDir 'Desinstalar-NO.ps1') -Force
   Copy-Item (Join-Path $src 'Desinstalar-NO.cmd') (Join-Path $uninstallDir 'Desinstalar-NO.cmd') -Force
   $uninstallCmd = Join-Path $uninstallDir 'Desinstalar-NO.cmd'
+  $uninstallString = "`"$env:SystemRoot\System32\cmd.exe`" /c `"$uninstallCmd`""
   $version = (Get-Item $exe).VersionInfo.ProductVersion
   if ([string]::IsNullOrWhiteSpace($version)) { $version = '1.5.2' }
   $brand = "N$([char]0x00D3)"
@@ -109,7 +110,7 @@ try {
   Set-ItemProperty -Path $uninstallKey -Name Publisher -Value 'Purslane Tech Pte. Ltd.'
   Set-ItemProperty -Path $uninstallKey -Name InstallLocation -Value $dst
   Set-ItemProperty -Path $uninstallKey -Name DisplayIcon -Value "$exe,0"
-  Set-ItemProperty -Path $uninstallKey -Name UninstallString -Value "`"$uninstallCmd`""
+  Set-ItemProperty -Path $uninstallKey -Name UninstallString -Value $uninstallString
   Set-ItemProperty -Path $uninstallKey -Name InstallDate -Value (Get-Date -Format 'yyyyMMdd')
   New-ItemProperty -Path $uninstallKey -Name NoModify -Value 1 -PropertyType DWord -Force | Out-Null
   New-ItemProperty -Path $uninstallKey -Name NoRepair -Value 1 -PropertyType DWord -Force | Out-Null
