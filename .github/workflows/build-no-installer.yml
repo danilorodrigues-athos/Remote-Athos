@@ -70,7 +70,7 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: |
-          choco install innosetup --no-progress -y
+          choco install innosetup --version=6.2.2 --no-progress -y
           if ($LASTEXITCODE -ne 0) {
             throw "Falha ao instalar o Inno Setup."
           }

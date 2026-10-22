@@ -425,7 +425,7 @@ jobs:
           Rename-Item (Join-Path $payload 'rustdesk.exe') 'NO.exe'
           Copy-Item 'res\installer\LEIA-ME-NO.md' $payload -Force
           Copy-Item 'res\installer\modelo-no-version.json' $payload -Force
-          choco install innosetup --no-progress -y
+          choco install innosetup --version=6.2.2 --no-progress -y
           if ($LASTEXITCODE -ne 0) {
             throw "Falha ao instalar o Inno Setup."
           }

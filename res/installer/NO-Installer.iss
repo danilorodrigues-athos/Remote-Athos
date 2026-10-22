@@ -62,7 +62,7 @@ Type: filesandordirs; Name: "{commonappdata}\NO"
 
 [Registry]
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\NO"; Flags: deletekey
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\NO"; Flags: deletekey 64
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\NO"; Flags: deletekey 64bit
 
 [Files]
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
