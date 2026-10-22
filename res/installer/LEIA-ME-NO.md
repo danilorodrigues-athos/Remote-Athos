@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `246c6209c` (branch `master`).
+Build: commit `bc90201d4` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -23,8 +23,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Senha permanente**: o diálogo "Definir Senha" agora exige só o tamanho
   mínimo de 8 caracteres; não exige dígito, maiúscula, minúscula nem especial.
 - **Login do RustDesk removido**: a seção Account no mobile, a opção Note e o
-  botão Note da sessão não existem mais; nenhum caminho visível abre OAuth ou a
-  nuvem do RustDesk. A aba **Conta** local continua disponível no desktop.
+  botão Note da sessão não existem mais; a nota/auditoria automática em nuvem
+  fica desligada. Nenhum caminho visível abre OAuth ou a nuvem do RustDesk.
+  A aba **Conta** local continua disponível no desktop.
 - **Indicador de conexão**: a aba da sessão mostra **Direto** ou **Relay** e a
   latência em ms quando o par informa a medição. A conexão por IP direto não
   depende de servidor público.
