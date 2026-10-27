@@ -28,11 +28,12 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Indicador de conexão**: a aba da sessão mostra **Direto** ou **Relay** e a
   latência em ms quando o par informa a medição. A conexão por IP direto não
   depende de servidor público.
-- **Rede local**: a tela inicial mostra **Radmin VPN** e o **IP da máquina**,
-  com status, IP e atalhos para copiar ou abrir o aplicativo oficial. O botão
-  **Fixar IP** transforma o endereço atual em fixo no Windows; use um IP fora
-  da faixa distribuída pelo DHCP do roteador. O NÓ só detecta a VPN já
-  conectada; criar ou entrar na rede continua sendo feito no aplicativo.
+- **Rede local**: a tela inicial mostra **Radmin VPN**, **Tailscale** e o
+  **IP da máquina**, com status, IP e atalhos para copiar ou abrir o aplicativo
+  oficial. O botão **Fixar IP** transforma o endereço atual em fixo no Windows;
+  para evitar conflito, use um IP fora da faixa DHCP ou faça uma reserva por
+  MAC no roteador. O NÓ só detecta a VPN já conectada; criar ou entrar na rede
+  continua sendo feito no aplicativo.
 - **Conta local**: a aba **Conta** agora cria uma conta só nesta máquina —
   o nome fica em `%APPDATA%\NO` e a senha local é protegida com DPAPI.
   Não abre Google, GitHub ou Microsoft e não usa o cadastro do RustDesk.
@@ -140,7 +141,7 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Janela abre com título **NÓ** e logo NÓ.
 - [ ] Ícone da janela/bandeja é o NÓ (não o arqueiro).
 - [ ] Card "Este dispositivo" mostra IP, serviço e rede.
-- [ ] Painel Rede local detecta o Radmin, mostra o IP e permite fixar o IP.
+- [ ] Painel Rede local detecta Radmin e Tailscale, mostra o IP e permite fixar o IP.
 - [ ] Serviço instala e a máquina fica acessível após reiniciar.
 - [ ] Diagnóstico de rede aplica as regras do firewall.
 - [ ] Modo suporte mostra ID/IP/senha em tamanho legível.
@@ -178,5 +179,5 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
   outra pessoa, proteja o acesso ao Windows e à pasta `%APPDATA%\NO`.
 - Use uma senha permanente forte por máquina.
 - **Nunca exponha a porta 21118 na internet.** Para acesso externo, use
-  Radmin VPN.
+  Radmin VPN ou Tailscale.
 - Acompanhe os patches de segurança do RustDesk upstream.

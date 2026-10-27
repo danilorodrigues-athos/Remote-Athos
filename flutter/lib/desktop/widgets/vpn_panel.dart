@@ -15,6 +15,7 @@ class VpnPanel extends StatefulWidget {
 
 class _VpnPanelState extends State<VpnPanel> {
   VpnStatus? _radmin;
+  VpnStatus? _tailscale;
   LocalIpInfo? _localIp;
   bool _loading = true;
   bool _refreshing = false;
@@ -43,12 +44,14 @@ class _VpnPanelState extends State<VpnPanel> {
     try {
       final results = await Future.wait<Object?>([
         VpnTools.radminStatus(),
+        VpnTools.tailscaleStatus(),
         NetworkTools.localIpInfo(),
       ]);
       if (!mounted) return;
       setState(() {
         _radmin = results[0] as VpnStatus;
-        _localIp = results[1] as LocalIpInfo?;
+        _tailscale = results[1] as VpnStatus;
+        _localIp = results[2] as LocalIpInfo?;
         _loading = false;
       });
     } catch (e) {
@@ -173,7 +176,7 @@ class _VpnPanelState extends State<VpnPanel> {
                       ),
                     ),
                     Text(
-                      'Radmin VPN e IP da máquina',
+                      'Radmin VPN, Tailscale e IP da máquina',
                       style: TextStyle(fontSize: 11, color: muted),
                     ),
                   ],
@@ -201,8 +204,9 @@ class _VpnPanelState extends State<VpnPanel> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Detecta o Radmin VPN conectado e mostra o IP da rede local. '
-            'Use Fixar IP para manter o endereço atual neste computador.',
+            'Detecta o Radmin VPN e o Tailscale conectados e mostra o IP da '
+            'rede local. Use Fixar IP para manter o endereço atual neste '
+            'computador.',
             style: TextStyle(fontSize: 11.5, color: muted),
           ),
           const SizedBox(height: 12),
@@ -210,11 +214,31 @@ class _VpnPanelState extends State<VpnPanel> {
             builder: (context, constraints) {
               final radmin =
                   _vpnCard(context, 'Radmin VPN', _radmin, Icons.lan_rounded);
+              final tailscale = _vpnCard(
+                  context, 'Tailscale', _tailscale, Icons.hub_rounded);
               final localIp = _localIpCard(context);
               if (constraints.maxWidth < 700) {
                 return Column(
                   children: [
                     radmin,
+                    const SizedBox(height: 10),
+                    tailscale,
+                    const SizedBox(height: 10),
+                    localIp,
+                  ],
+                );
+              }
+              if (constraints.maxWidth < 1000) {
+                return Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: radmin),
+                        const SizedBox(width: 10),
+                        Expanded(child: tailscale),
+                      ],
+                    ),
                     const SizedBox(height: 10),
                     localIp,
                   ],
@@ -224,6 +248,8 @@ class _VpnPanelState extends State<VpnPanel> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: radmin),
+                  const SizedBox(width: 10),
+                  Expanded(child: tailscale),
                   const SizedBox(width: 10),
                   Expanded(child: localIp),
                 ],
