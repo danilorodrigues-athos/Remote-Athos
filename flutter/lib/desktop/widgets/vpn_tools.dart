@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -26,7 +25,7 @@ class VpnStatus {
 }
 
 /// Detects VPN clients already configured on the machine. It never creates
-/// or joins a network; that stays in the official Radmin VPN/Tailscale apps.
+/// or joins a network; that stays in the official Radmin VPN/WireGuard apps.
 class VpnTools {
   VpnTools._();
 
@@ -39,9 +38,14 @@ class VpnTools {
     r'C:\Program Files\Famatech\Radmin VPN\RvRvpnGui.exe',
   ];
 
-  static const _tailscalePaths = [
-    r'C:\Program Files\Tailscale\tailscale.exe',
-    r'C:\Program Files (x86)\Tailscale\tailscale.exe',
+  static const _wireguardPaths = [
+    r'C:\Program Files\WireGuard\WireGuard.exe',
+    r'C:\Program Files (x86)\WireGuard\WireGuard.exe',
+  ];
+
+  static const _wireguardCliPaths = [
+    r'C:\Program Files\WireGuard\wg.exe',
+    r'C:\Program Files (x86)\WireGuard\wg.exe',
   ];
 
   static Future<VpnStatus> radminStatus() async {
@@ -93,95 +97,63 @@ class VpnTools {
     );
   }
 
-  static Future<VpnStatus> tailscaleStatus() async {
-    final cli = await _findTailscaleCli();
-    final appPath = await _findTailscaleGui(cli);
-    final interfaces = await _interfaces();
-    var adapterFound = false;
-    final interfaceIps = <String>[];
-
-    for (final interface in interfaces) {
-      final isTailscaleName =
-          interface.name.toLowerCase().contains('tailscale');
-      if (isTailscaleName) adapterFound = true;
-      for (final address in interface.addresses) {
-        if (address.type != InternetAddressType.IPv4 ||
-            address.isLoopback ||
-            address.isLinkLocal) {
-          continue;
-        }
-        if (isTailscaleName || _isTailscaleAddress(address.address)) {
-          adapterFound = true;
-          interfaceIps.add(address.address);
-        }
-      }
-    }
-
-    final installed = cli != null || adapterFound;
-    if (cli == null) {
-      return VpnStatus(
-        name: 'Tailscale',
-        supported: true,
-        installed: installed,
-        connected: interfaceIps.isNotEmpty,
-        detail: interfaceIps.isNotEmpty
-            ? 'Conectado'
-            : installed
-                ? 'Desconectado'
-                : 'Não instalado',
-        ips: _sortedUnique(interfaceIps),
-        appPath: appPath,
+  static Future<VpnStatus> wireguardStatus() async {
+    if (!Platform.isWindows) {
+      return const VpnStatus(
+        name: 'WireGuard',
+        supported: false,
+        installed: false,
+        connected: false,
+        detail: 'Disponível apenas no Windows',
       );
     }
 
-    try {
-      final result = await Process.run(cli, ['status', '--json'])
-          .timeout(const Duration(seconds: 4));
-      if (result.exitCode == 0) {
-        final data = jsonDecode((result.stdout ?? '').toString());
-        if (data is Map) {
-          final ips = <String>[...interfaceIps];
-          final self = data['Self'];
-          if (self is Map) {
-            final reported = self['TailscaleIPs'];
-            if (reported is List) {
-              for (final value in reported) {
-                final ip = value?.toString() ?? '';
-                if (_isIPv4(ip)) ips.add(ip);
-              }
-            }
-          }
-          final state = data['BackendState']?.toString() ?? '';
-          final health = data['Health'];
-          final starting = health is List &&
-              health.any((item) => item
-                  .toString()
-                  .toLowerCase()
-                  .contains('starting'));
-          final connected = state == 'Running' || ips.isNotEmpty;
-          return VpnStatus(
-            name: 'Tailscale',
-            supported: true,
-            installed: true,
-            connected: connected,
-            detail: _tailscaleDetail(state, connected, starting: starting),
-            ips: _sortedUnique(ips),
-            appPath: appPath,
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('tailscale status failed: $e');
+    var appPath = await _findWireGuardApp();
+    final cli = await _findWireGuardCli(appPath);
+    if (appPath == null && cli != null) {
+      final gui = '${File(cli).parent.path}${Platform.pathSeparator}'
+          'WireGuard.exe';
+      if (await File(gui).exists()) appPath = gui;
     }
 
+    final adapters = await _wireGuardAdapters();
+    final tunnelNames = await _wireGuardTunnels(cli);
+    final names = tunnelNames.map((name) => name.toLowerCase()).toSet();
+    var adapterFound = adapters.found;
+    final ips = <String>[...adapters.ips];
+
+    if (!adapterFound || ips.isEmpty) {
+      final interfaces = await _interfaces();
+      for (final interface in interfaces) {
+        final lowerName = interface.name.toLowerCase();
+        final isWireGuard = lowerName.contains('wireguard') ||
+            names.contains(lowerName);
+        if (!isWireGuard) continue;
+        adapterFound = true;
+        for (final address in interface.addresses) {
+          if (address.type != InternetAddressType.IPv4 ||
+              address.isLoopback ||
+              address.isLinkLocal) {
+            continue;
+          }
+          ips.add(address.address);
+        }
+      }
+    }
+
+    final connected = adapterFound || tunnelNames.isNotEmpty;
+    final installed = appPath != null || cli != null || connected;
     return VpnStatus(
-      name: 'Tailscale',
+      name: 'WireGuard',
       supported: true,
-      installed: true,
-      connected: interfaceIps.isNotEmpty,
-      detail:
-          interfaceIps.isNotEmpty ? 'Conectado' : 'Serviço indisponível',
-      ips: _sortedUnique(interfaceIps),
+      installed: installed,
+      connected: connected,
+      detail: connected
+          ? (ips.isEmpty ? 'Conectado (IP não detectado)' : 'Conectado')
+          : installed
+              ? 'Desconectado'
+              : 'Não instalado',
+      ips: _sortedUnique(ips),
       appPath: appPath,
     );
   }
@@ -212,26 +184,91 @@ class VpnTools {
     return null;
   }
 
-  static Future<String?> _findTailscaleCli() async {
-    for (final path in _tailscalePaths) {
+  static Future<String?> _findWireGuardApp() async {
+    for (final path in _wireguardPaths) {
       if (await File(path).exists()) return path;
     }
-    if (Platform.isWindows) {
-      return _which('where.exe');
+    return null;
+  }
+
+  static Future<String?> _findWireGuardCli(String? appPath) async {
+    if (appPath != null) {
+      final cli =
+          '${File(appPath).parent.path}${Platform.pathSeparator}wg.exe';
+      if (await File(cli).exists()) return cli;
     }
-    return _which('which');
+    for (final path in _wireguardCliPaths) {
+      if (await File(path).exists()) return path;
+    }
+    return _which('wg.exe');
   }
 
-  static Future<String?> _findTailscaleGui(String? cli) async {
-    if (!Platform.isWindows || cli == null) return null;
-    final dir = File(cli).parent.path;
-    final gui = '$dir${Platform.pathSeparator}tailscale-ipn.exe';
-    return await File(gui).exists() ? gui : null;
-  }
-
-  static Future<String?> _which(String command) async {
+  static Future<_WireGuardInfo> _wireGuardAdapters() async {
     try {
-      final result = await Process.run(command, ['tailscale'])
+      final result = await Process.run('powershell', [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        r'''
+$ErrorActionPreference = 'SilentlyContinue'
+$adapters = @(Get-NetAdapter | Where-Object {
+  $_.Status -eq 'Up' -and (
+    $_.InterfaceDescription -like '*WireGuard*' -or
+    $_.Name -like '*WireGuard*'
+  )
+})
+foreach ($adapter in $adapters) {
+  Write-Output ('NAME=' + $adapter.Name)
+  $ips = @(Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 |
+    Where-Object { $_.IPAddress -notlike '169.254.*' } |
+    Select-Object -ExpandProperty IPAddress)
+  foreach ($ip in $ips) { Write-Output ('IP=' + $ip) }
+}
+''',
+      ]).timeout(const Duration(seconds: 6));
+      if (result.exitCode != 0) return const _WireGuardInfo.empty();
+      var found = false;
+      final ips = <String>[];
+      final lines =
+          (result.stdout ?? '').toString().split(RegExp(r'\r?\n'));
+      for (final rawLine in lines) {
+        final line = rawLine.trim();
+        if (line.startsWith('NAME=')) {
+          found = true;
+        } else if (line.startsWith('IP=')) {
+          final ip = line.substring(3).trim();
+          if (_isIPv4(ip)) ips.add(ip);
+        }
+      }
+      return _WireGuardInfo(found: found, ips: ips);
+    } catch (e) {
+      debugPrint('wireguard adapters failed: $e');
+      return const _WireGuardInfo.empty();
+    }
+  }
+
+  static Future<List<String>> _wireGuardTunnels(String? cli) async {
+    if (cli == null) return const [];
+    try {
+      final result = await Process.run(cli, ['show', 'interfaces'])
+          .timeout(const Duration(seconds: 4));
+      if (result.exitCode != 0) return const [];
+      return (result.stdout ?? '')
+          .toString()
+          .split(RegExp(r'\r?\n'))
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
+    } catch (e) {
+      debugPrint('wireguard tunnels failed: $e');
+      return const [];
+    }
+  }
+
+  static Future<String?> _which(String executable) async {
+    if (!Platform.isWindows) return null;
+    try {
+      final result = await Process.run('where.exe', [executable])
           .timeout(const Duration(seconds: 3));
       if (result.exitCode != 0) return null;
       final lines =
@@ -241,7 +278,7 @@ class VpnTools {
         if (path.isNotEmpty && await File(path).exists()) return path;
       }
     } catch (e) {
-      debugPrint('tailscale lookup failed: $e');
+      debugPrint('VPN lookup failed: $e');
     }
     return null;
   }
@@ -261,13 +298,6 @@ class VpnTools {
 
   static bool _isRadminAddress(String ip) => ip.startsWith('26.');
 
-  static bool _isTailscaleAddress(String ip) {
-    final parts = ip.split('.');
-    if (parts.length != 4 || parts[0] != '100') return false;
-    final second = int.tryParse(parts[1]);
-    return second != null && second >= 64 && second <= 127;
-  }
-
   static bool _isIPv4(String ip) {
     final parts = ip.split('.');
     if (parts.length != 4) return false;
@@ -283,24 +313,15 @@ class VpnTools {
     set.sort();
     return set;
   }
+}
 
-  static String _tailscaleDetail(String state, bool connected,
-      {bool starting = false}) {
-    if (starting) return 'Iniciando';
-    if (connected && state != 'NeedsLogin') return 'Conectado';
-    switch (state) {
-      case 'Running':
-        return 'Conectado';
-      case 'Starting':
-        return 'Iniciando';
-      case 'NeedsLogin':
-        return 'Login necessário';
-      case 'Stopped':
-        return 'Desconectado';
-      case 'NoState':
-        return 'Serviço parado';
-      default:
-        return connected ? 'Conectado' : 'Desconectado';
-    }
-  }
+class _WireGuardInfo {
+  const _WireGuardInfo({required this.found, required this.ips});
+
+  const _WireGuardInfo.empty()
+      : found = false,
+        ips = const <String>[];
+
+  final bool found;
+  final List<String> ips;
 }

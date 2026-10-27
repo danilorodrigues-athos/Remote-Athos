@@ -14,7 +14,7 @@ class VpnPanel extends StatefulWidget {
 
 class _VpnPanelState extends State<VpnPanel> {
   VpnStatus? _radmin;
-  VpnStatus? _tailscale;
+  VpnStatus? _wireguard;
   bool _loading = true;
   bool _refreshing = false;
   Timer? _timer;
@@ -41,12 +41,12 @@ class _VpnPanelState extends State<VpnPanel> {
     try {
       final results = await Future.wait([
         VpnTools.radminStatus(),
-        VpnTools.tailscaleStatus(),
+        VpnTools.wireguardStatus(),
       ]);
       if (!mounted) return;
       setState(() {
         _radmin = results[0];
-        _tailscale = results[1];
+        _wireguard = results[1];
         _loading = false;
       });
     } catch (e) {
@@ -116,7 +116,7 @@ class _VpnPanelState extends State<VpnPanel> {
                       ),
                     ),
                     Text(
-                      'Radmin VPN ou Tailscale',
+                      'Radmin VPN ou WireGuard',
                       style: TextStyle(fontSize: 11, color: muted),
                     ),
                   ],
@@ -144,7 +144,7 @@ class _VpnPanelState extends State<VpnPanel> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Conecte no aplicativo oficial e use o IP virtual no NÓ. '
+            'Conecte no aplicativo oficial e use o IP da rede interna no NÓ. '
             'O painel apenas detecta a conexão existente.',
             style: TextStyle(fontSize: 11.5, color: muted),
           ),
@@ -153,14 +153,14 @@ class _VpnPanelState extends State<VpnPanel> {
             builder: (context, constraints) {
               final radmin =
                   _vpnCard(context, 'Radmin VPN', _radmin, Icons.lan_rounded);
-              final tailscale = _vpnCard(
-                  context, 'Tailscale', _tailscale, Icons.hub_rounded);
+              final wireguard = _vpnCard(
+                  context, 'WireGuard', _wireguard, Icons.shield_rounded);
               if (constraints.maxWidth < 700) {
                 return Column(
                   children: [
                     radmin,
                     const SizedBox(height: 10),
-                    tailscale,
+                    wireguard,
                   ],
                 );
               }
@@ -169,7 +169,7 @@ class _VpnPanelState extends State<VpnPanel> {
                 children: [
                   Expanded(child: radmin),
                   const SizedBox(width: 10),
-                  Expanded(child: tailscale),
+                  Expanded(child: wireguard),
                 ],
               );
             },
