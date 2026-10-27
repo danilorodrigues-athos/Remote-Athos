@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/desktop/widgets/network_tools.dart';
 import 'package:flutter_hbb/desktop/widgets/vpn_tools.dart';
 
 class VpnPanel extends StatefulWidget {
@@ -14,9 +15,10 @@ class VpnPanel extends StatefulWidget {
 
 class _VpnPanelState extends State<VpnPanel> {
   VpnStatus? _radmin;
-  VpnStatus? _wireguard;
+  LocalIpInfo? _localIp;
   bool _loading = true;
   bool _refreshing = false;
+  bool _changingIp = false;
   Timer? _timer;
 
   @override
@@ -39,14 +41,14 @@ class _VpnPanelState extends State<VpnPanel> {
     if (_refreshing) return;
     _refreshing = true;
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<Object?>([
         VpnTools.radminStatus(),
-        VpnTools.wireguardStatus(),
+        NetworkTools.localIpInfo(),
       ]);
       if (!mounted) return;
       setState(() {
-        _radmin = results[0];
-        _wireguard = results[1];
+        _radmin = results[0] as VpnStatus;
+        _localIp = results[1] as LocalIpInfo?;
         _loading = false;
       });
     } catch (e) {
@@ -65,10 +67,65 @@ class _VpnPanelState extends State<VpnPanel> {
     showToast('IP copiado: ${status.primaryIp}');
   }
 
+  Future<void> _copyLocalIp() async {
+    final info = _localIp;
+    if (info == null) return;
+    await Clipboard.setData(ClipboardData(text: info.address));
+    if (!mounted) return;
+    showToast('IP copiado: ${info.address}');
+  }
+
   Future<void> _openApp(VpnStatus status) async {
     final ok = await VpnTools.openApp(status.appPath);
     if (!mounted || ok) return;
     showToast('Abra o ${status.name} pelo menu Iniciar.');
+  }
+
+  Future<void> _toggleLocalIp() async {
+    final info = _localIp;
+    if (info == null || _changingIp) return;
+    final fixing = info.dhcpEnabled;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(fixing ? 'Fixar IP?' : 'Usar IP automático?'),
+        content: Text(
+          fixing
+              ? 'Fixar o IP ${info.addressWithPrefix} no adaptador '
+                  '"${info.adapter}"?\n\n'
+                  'O Windows deixará de usar DHCP nesse adaptador. Confirme '
+                  'que o IP está fora da faixa distribuída pelo roteador para '
+                  'evitar conflito.'
+              : 'Voltar a obter IP automaticamente no adaptador '
+                  '"${info.adapter}"?\n\n'
+                  'O computador pode receber outro endereço.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(fixing ? 'Fixar IP' : 'Usar automático'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _changingIp = true);
+    final ok = fixing
+        ? await NetworkTools.fixLocalIp(info)
+        : await NetworkTools.useAutomaticLocalIp(info);
+    if (!mounted) return;
+    setState(() => _changingIp = false);
+    showToast(ok
+        ? (fixing
+            ? 'IP ${info.address} fixado.'
+            : 'IP automático reativado.')
+        : 'Não foi possível alterar o IP. Aceite o UAC e tente novamente.');
+    await _refresh();
   }
 
   @override
@@ -98,7 +155,7 @@ class _VpnPanelState extends State<VpnPanel> {
                   color: MyTheme.accent.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(Icons.vpn_lock_rounded,
+                child: Icon(Icons.lan_rounded,
                     size: 17, color: MyTheme.accent),
               ),
               const SizedBox(width: 10),
@@ -107,7 +164,7 @@ class _VpnPanelState extends State<VpnPanel> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'VPN',
+                      'REDE LOCAL',
                       style: TextStyle(
                         fontSize: 11.5,
                         letterSpacing: 0.6,
@@ -116,7 +173,7 @@ class _VpnPanelState extends State<VpnPanel> {
                       ),
                     ),
                     Text(
-                      'Radmin VPN ou WireGuard',
+                      'Radmin VPN e IP da máquina',
                       style: TextStyle(fontSize: 11, color: muted),
                     ),
                   ],
@@ -144,8 +201,8 @@ class _VpnPanelState extends State<VpnPanel> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Conecte no aplicativo oficial e use o IP da rede interna no NÓ. '
-            'O painel apenas detecta a conexão existente.',
+            'Detecta o Radmin VPN conectado e mostra o IP da rede local. '
+            'Use Fixar IP para manter o endereço atual neste computador.',
             style: TextStyle(fontSize: 11.5, color: muted),
           ),
           const SizedBox(height: 12),
@@ -153,14 +210,13 @@ class _VpnPanelState extends State<VpnPanel> {
             builder: (context, constraints) {
               final radmin =
                   _vpnCard(context, 'Radmin VPN', _radmin, Icons.lan_rounded);
-              final wireguard = _vpnCard(
-                  context, 'WireGuard', _wireguard, Icons.shield_rounded);
+              final localIp = _localIpCard(context);
               if (constraints.maxWidth < 700) {
                 return Column(
                   children: [
                     radmin,
                     const SizedBox(height: 10),
-                    wireguard,
+                    localIp,
                   ],
                 );
               }
@@ -169,7 +225,7 @@ class _VpnPanelState extends State<VpnPanel> {
                 children: [
                   Expanded(child: radmin),
                   const SizedBox(width: 10),
-                  Expanded(child: wireguard),
+                  Expanded(child: localIp),
                 ],
               );
             },
@@ -286,10 +342,114 @@ class _VpnPanelState extends State<VpnPanel> {
     );
   }
 
+  Widget _localIpCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted =
+        Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
+    final info = _localIp;
+    final statusColor = info == null
+        ? Colors.grey
+        : (info.dhcpEnabled ? Colors.orange : Colors.green);
+    final detail = info == null
+        ? (_loading ? 'Verificando...' : 'Não detectado')
+        : (info.dhcpEnabled ? 'Automático (DHCP)' : 'Fixo');
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 9),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151B2B) : const Color(0xFFF3F5F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: statusColor.withOpacity(0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.computer_rounded, size: 17, color: statusColor),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'IP local',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            detail,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: statusColor,
+            ),
+          ),
+          if (info != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              info.addressWithPrefix,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Adaptador: ${info.adapter}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10.5, color: muted),
+            ),
+            if (info.gateway.isNotEmpty)
+              Text(
+                'Gateway: ${info.gateway}',
+                style: TextStyle(fontSize: 10.5, color: muted),
+              ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 2,
+              children: [
+                _smallButton(
+                  icon: Icons.copy_rounded,
+                  label: 'Copiar IP',
+                  onPressed: _copyLocalIp,
+                ),
+                _smallButton(
+                  icon: info.dhcpEnabled
+                      ? Icons.push_pin_rounded
+                      : Icons.autorenew_rounded,
+                  label: _changingIp
+                      ? 'Aplicando...'
+                      : (info.dhcpEnabled
+                          ? 'Fixar IP'
+                          : 'Usar automático'),
+                  onPressed: _changingIp ? null : _toggleLocalIp,
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _smallButton({
     required IconData icon,
     required String label,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     return TextButton.icon(
       onPressed: onPressed,

@@ -28,11 +28,11 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 - **Indicador de conexão**: a aba da sessão mostra **Direto** ou **Relay** e a
   latência em ms quando o par informa a medição. A conexão por IP direto não
   depende de servidor público.
-- **Painel VPN**: a tela inicial mostra **Radmin VPN** e **WireGuard**, com
-  status, IP da rede interna e atalhos para copiar o IP ou abrir o aplicativo
-  oficial. O NÓ só detecta a VPN já conectada; criar ou entrar na rede continua
-  sendo feito no aplicativo de cada VPN. No WireGuard, importe o arquivo `.conf`
-  da rede interna no aplicativo oficial.
+- **Rede local**: a tela inicial mostra **Radmin VPN** e o **IP da máquina**,
+  com status, IP e atalhos para copiar ou abrir o aplicativo oficial. O botão
+  **Fixar IP** transforma o endereço atual em fixo no Windows; use um IP fora
+  da faixa distribuída pelo DHCP do roteador. O NÓ só detecta a VPN já
+  conectada; criar ou entrar na rede continua sendo feito no aplicativo.
 - **Conta local**: a aba **Conta** agora cria uma conta só nesta máquina —
   o nome fica em `%APPDATA%\NO` e a senha local é protegida com DPAPI.
   Não abre Google, GitHub ou Microsoft e não usa o cadastro do RustDesk.
@@ -63,7 +63,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
      Se aparecer **Pública**, é só o perfil da rede (comum em VPN); a porta 21118
      continua liberada. **Aplicar** recria as regras e não é obrigatório.
 4. Defina uma **senha permanente** em **Configurações → Segurança**.
-5. No roteador, faça uma **reserva DHCP por MAC** para o IP não mudar.
+5. No painel **Rede local**, clique em **Fixar IP** para manter o endereço
+   atual. Use um IP fora da faixa do DHCP do roteador; se preferir, faça uma
+   **reserva DHCP por MAC** no roteador.
 
 > O ZIP portátil e os scripts `Instalar-NO.ps1`/`Instalar-NO.cmd` continuam
 > disponíveis como alternativa, mas o caminho recomendado é o `Instalar-NO.exe`.
@@ -138,7 +140,7 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Janela abre com título **NÓ** e logo NÓ.
 - [ ] Ícone da janela/bandeja é o NÓ (não o arqueiro).
 - [ ] Card "Este dispositivo" mostra IP, serviço e rede.
-- [ ] Painel VPN detecta Radmin/WireGuard, mostra o IP da rede interna e abre o app.
+- [ ] Painel Rede local detecta o Radmin, mostra o IP e permite fixar o IP.
 - [ ] Serviço instala e a máquina fica acessível após reiniciar.
 - [ ] Diagnóstico de rede aplica as regras do firewall.
 - [ ] Modo suporte mostra ID/IP/senha em tamanho legível.
@@ -176,5 +178,5 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
   outra pessoa, proteja o acesso ao Windows e à pasta `%APPDATA%\NO`.
 - Use uma senha permanente forte por máquina.
 - **Nunca exponha a porta 21118 na internet.** Para acesso externo, use
-  Radmin VPN ou WireGuard.
+  Radmin VPN.
 - Acompanhe os patches de segurança do RustDesk upstream.
