@@ -74,11 +74,16 @@ jobs:
           $iscc = Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) {
             $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.2.2.exe'
-            $url = 'https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe'
+            $url = 'https://github.com/jrsoftware/issrc/releases/download/is-6_2_2/innosetup-6.2.2.exe'
+            $expected = '8117D10D00A2AD33A1390978EA3872861C330E087914410A6377B22C4C5B8563'
             $lastError = $null
             for ($attempt = 1; $attempt -le 3; $attempt++) {
               try {
                 Invoke-WebRequest -Uri $url -OutFile $setup -UseBasicParsing
+                $hash = (Get-FileHash $setup -Algorithm SHA256).Hash
+                if ($hash -ne $expected) {
+                  throw "Hash do Inno Setup inválido: $hash"
+                }
                 $lastError = $null
                 break
               } catch {
