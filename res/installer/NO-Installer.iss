@@ -75,11 +75,11 @@ Name: "{autodesktop}\NÓ"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}
 Filename: "{app}\{#MyAppExeName}"; Flags: nowait runasoriginaluser skipifsilent
 
 [UninstallRun]
-Filename: "{sys}\sc.exe"; Parameters: "stop NO"; Flags: runhidden waituntilterminated; RunOnceId: "StopNOService"
-Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM NO.exe"; Flags: runhidden; RunOnceId: "StopNOProcess"
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall-service"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveNOService"
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""NO 21118 TCP"""; Flags: runhidden; RunOnceId: "RemoveNOFirewallTCP"
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""NO 21118 UDP"""; Flags: runhidden; RunOnceId: "RemoveNOFirewallUDP"
+Filename: "{sys}\sc.exe"; Parameters: "stop NO"; WorkingDir: "{tmp}"; Flags: runhidden waituntilterminated; RunOnceId: "StopNOService"
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM NO.exe"; WorkingDir: "{tmp}"; Flags: runhidden waituntilterminated; RunOnceId: "StopNOProcess"
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall-service"; WorkingDir: "{tmp}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveNOService"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""NO 21118 TCP"""; WorkingDir: "{tmp}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveNOFirewallTCP"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""NO 21118 UDP"""; WorkingDir: "{tmp}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveNOFirewallUDP"
 
 [Code]
 var
@@ -121,10 +121,10 @@ begin
   if CurStep = ssInstall then
   begin
     AddLog('Parando instância e serviço existentes.');
-    RunHidden(ExpandConstant('{sys}\sc.exe'), 'stop NO', '');
-    RunHidden(ExpandConstant('{sys}\ping.exe'), '-n 2 127.0.0.1', '');
-    RunHidden(ExpandConstant('{sys}\taskkill.exe'), '/F /IM NO.exe', '');
-    RunHidden(ExpandConstant('{sys}\ping.exe'), '-n 2 127.0.0.1', '');
+    RunHidden(ExpandConstant('{sys}\sc.exe'), 'stop NO', ExpandConstant('{tmp}'));
+    RunHidden(ExpandConstant('{sys}\ping.exe'), '-n 2 127.0.0.1', ExpandConstant('{tmp}'));
+    RunHidden(ExpandConstant('{sys}\taskkill.exe'), '/F /IM NO.exe', ExpandConstant('{tmp}'));
+    RunHidden(ExpandConstant('{sys}\ping.exe'), '-n 2 127.0.0.1', ExpandConstant('{tmp}'));
   end
   else if CurStep = ssPostInstall then
   begin
@@ -140,7 +140,7 @@ begin
 
     Exe := ExpandConstant('{app}\NO.exe');
     AddLog('Instalando serviço do NÓ.');
-    R := RunHidden(Exe, '--install-service', ExpandConstant('{app}'));
+    R := RunHidden(Exe, '--install-service', ExpandConstant('{tmp}'));
     if R <> 0 then
     begin
       AddLog('Falha ao instalar serviço. Código: ' + IntToStr(R));
