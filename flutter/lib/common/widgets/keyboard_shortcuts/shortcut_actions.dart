@@ -1,5 +1,3 @@
-import 'package:flutter_hbb/consts.dart';
-
 import 'shortcut_constants.dart';
 import 'shortcut_utils.dart';
 
@@ -162,11 +160,10 @@ final List<KeyboardShortcutActionGroup> kKeyboardShortcutActionGroups = [
     KeyboardShortcutActionEntry(
         kShortcutActionToggleSwapLeftRightMouse, 'swap-left-right-mouse'),
   ]),
-  if (!kLeanRemoteMode)
-    KeyboardShortcutActionGroup('Chat', [
-      KeyboardShortcutActionEntry(kShortcutActionToggleChat, 'Text chat'),
-      KeyboardShortcutActionEntry(kShortcutActionToggleVoiceCall, 'Voice call'),
-    ]),
+  KeyboardShortcutActionGroup('Chat', [
+    KeyboardShortcutActionEntry(kShortcutActionToggleChat, 'Text chat'),
+    KeyboardShortcutActionEntry(kShortcutActionToggleVoiceCall, 'Voice call'),
+  ]),
   // "Other" collects single-icon toolbar buttons that have no dropdown
   // (Pin, Close), plus actions with no toolbar entry at all (Fullscreen —
   // driven by callback, not menu; Toggle Toolbar / tab navigation — tab
@@ -223,12 +220,6 @@ List<KeyboardShortcutActionGroup> filterKeyboardShortcutActionGroupsForPlatform(
   ShortcutPlatformCapabilities cap,
 ) {
   bool allowed(String id) {
-    if (kLeanRemoteMode &&
-        (id == kShortcutActionToggleRecording ||
-            id == kShortcutActionToggleChat ||
-            id == kShortcutActionToggleVoiceCall)) {
-      return false;
-    }
     if (cap.excludedActions.contains(id)) return false;
     if (!cap.includeFullscreenShortcut &&
         id == kShortcutActionToggleFullscreen) {

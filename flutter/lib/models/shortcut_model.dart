@@ -329,7 +329,7 @@ void registerSessionShortcutActions(
   // Toggle Recording in settings and the press would have no handler.
   // `recordingModel.toggle()` itself short-circuits on iOS and on sessions
   // without recording permission.
-  if (isDesktop && !kLeanRemoteMode) {
+  if (isDesktop) {
     ffi.shortcutModel.register(kShortcutActionToggleRecording, () {
       ffi.recordingModel.toggle();
     });
@@ -452,19 +452,16 @@ void registerSessionShortcutActions(
   // _ChatMenu is a standalone toolbar icon — not part of any toolbar
   // helper that returns a TToggleMenu list — so its handler is wired
   // here rather than picked up by helper auto-register.
-  if (!kLeanRemoteMode) {
-    ffi.shortcutModel.register(kShortcutActionToggleChat, () {
-      ffi.chatModel
-          .changeCurrentKey(MessageKey(ffi.id, ChatModel.clientModeID));
-      ffi.chatModel.toggleChatOverlay();
-    });
-  }
+  ffi.shortcutModel.register(kShortcutActionToggleChat, () {
+    ffi.chatModel.changeCurrentKey(MessageKey(ffi.id, ChatModel.clientModeID));
+    ffi.chatModel.toggleChatOverlay();
+  });
 
   // Toggle Voice Call — start when idle, hang up when active. Mirrors the
   // toolbar's `_VoiceCallMenu` state-driven button. Web bridge throws
   // UnimplementedError on both sessionRequestVoiceCall and
   // sessionCloseVoiceCall; iOS has no audio capture implementation.
-  if (!kLeanRemoteMode && !isWeb && !isIOS) {
+  if (!isWeb && !isIOS) {
     ffi.shortcutModel.register(kShortcutActionToggleVoiceCall, () {
       final status = ffi.chatModel.voiceCallStatus.value;
       if (status == VoiceCallStatus.connected ||
