@@ -5,11 +5,11 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 
 ## O que mudou neste build
 
-- **Interface enxuta para suporte remoto**: a barra da sessão e as configurações
-  mostram apenas o fluxo essencial — tela, teclado/mouse, clipboard, arquivos,
-  reinício, bloqueio de entrada e privacidade. Chat, voz, gravação, câmera,
-  terminal, túnel TCP, impressora remota, 2FA e troca de ID ficaram fora da
-  interface.
+- **Interface enxuta para suporte remoto**: a barra da sessão e os menus de
+  conexão mostram apenas o fluxo essencial — tela, teclado/mouse, clipboard,
+  arquivos, reinício, bloqueio de entrada e privacidade. Chat, voz, gravação,
+  câmera, terminal, túnel TCP, impressora remota, 2FA e troca de ID ficaram
+  fora desses menus; atalhos avançados continuam em Configurações.
 - **Copiar dados de acesso**: no Modo suporte, o botão **Copiar dados de acesso**
   copia ID, senha e IP local de uma vez para enviar ao técnico.
 - **Marca NÓ**: logo novo (N com nó e ondas), título da janela, ícone do app/bandeja
