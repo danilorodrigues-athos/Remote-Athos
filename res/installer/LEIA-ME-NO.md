@@ -1,10 +1,17 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build: commit `b8ee25eaf` (branch `master`).
+Build do app: commit `4da87bfa3` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
 
+- **Interface enxuta para suporte remoto**: a barra da sessão e as configurações
+  mostram apenas o fluxo essencial — tela, teclado/mouse, clipboard, arquivos,
+  reinício, bloqueio de entrada e privacidade. Chat, voz, gravação, câmera,
+  terminal, túnel TCP, impressora remota, 2FA e troca de ID ficaram fora da
+  interface.
+- **Copiar dados de acesso**: no Modo suporte, o botão **Copiar dados de acesso**
+  copia ID, senha e IP local de uma vez para enviar ao técnico.
 - **Marca NÓ**: logo novo (N com nó e ondas), título da janela, ícone do app/bandeja
   e metadados do executável. Todo o nome ATHOS e o arqueiro foram removidos.
 - **Atualizações offline (L3)**: pasta compartilhada com `no-version.json`; o app
