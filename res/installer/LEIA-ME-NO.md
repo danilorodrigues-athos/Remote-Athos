@@ -177,6 +177,27 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - Confira a reserva de IP no roteador.
 - Teste a porta: `Test-NetConnection <IP> -Port 21118`.
 
+## Acesso remoto: sugestões de uso
+
+- **Mesma rede**: use o **IP local** e o botão **Fixar IP**. Prefira um IP fora
+  da faixa do DHCP ou uma reserva por MAC no roteador. Se a máquina mudar de
+  rede, use **Usar automático** para voltar ao DHCP.
+- **Fora da rede**: use **Tailscale** como primeira opção; mantenha a máquina
+  controlada e o técnico na mesma tailnet. Use **Radmin VPN** como alternativa
+  quando o Tailscale não estiver disponível na rede.
+- **Nunca exponha a porta 21118 diretamente na internet.** O acesso externo deve
+  passar por Tailscale ou Radmin VPN.
+- **Atendimento rápido**: abra **Modo suporte → Copiar dados de acesso** e envie
+  ID, senha e IP em uma única mensagem. Para acesso sem alguém na máquina,
+  configure uma senha permanente com pelo menos 8 caracteres.
+- **Durante a sessão**: use transferência de arquivos para enviar instaladores,
+  bloqueio de entrada apenas quando necessário e privacidade quando a tela não
+  puder ser vista por terceiros.
+- **Depois do atendimento**: troque a senha se outra pessoa a conheceu, confira
+  o serviço e o firewall e faça um teste de conexão de outro computador.
+- **Manutenção**: guarde o `Instalar-NO.exe` e o SHA-256, teste a desinstalação
+  em uma VM e lembre que `%APPDATA%\NO` é preservado.
+
 ## Segurança
 
 - As senhas do catálogo e a senha da conta local são criptografadas com DPAPI
