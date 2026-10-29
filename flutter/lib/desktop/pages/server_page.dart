@@ -876,7 +876,7 @@ class _CmControlPanel extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Offstage(
-          offstage: !client.inVoiceCall,
+          offstage: kLeanRemoteMode || !client.inVoiceCall,
           child: Row(
             children: [
               Expanded(
@@ -962,7 +962,7 @@ class _CmControlPanel extends StatelessWidget {
           ),
         ),
         Offstage(
-          offstage: !client.incomingVoiceCall,
+          offstage: kLeanRemoteMode || !client.incomingVoiceCall,
           child: Row(
             children: [
               Expanded(

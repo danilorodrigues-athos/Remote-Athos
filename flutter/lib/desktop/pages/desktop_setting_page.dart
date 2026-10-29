@@ -77,7 +77,8 @@ class DesktopSettingPage extends StatefulWidget {
       SettingsTabKey.network,
     if (!bind.isIncomingOnly()) SettingsTabKey.display,
     if (!bind.isDisableAccount()) SettingsTabKey.account,
-    if (isWindows &&
+    if (!kLeanRemoteMode &&
+        isWindows &&
         !bind.isDisableSettings() &&
         bind.mainGetBuildinOption(key: kOptionHideRemotePrinterSetting) != 'Y')
       SettingsTabKey.printer,
@@ -420,8 +421,8 @@ class _GeneralState extends State<_General> {
         theme(),
         _Card(title: 'Language', children: [language()]),
         if (!isWeb) hwcodec(),
-        if (!isWeb) audio(context),
-        if (!isWeb) record(context),
+        if (!isWeb && !kLeanRemoteMode) audio(context),
+        if (!isWeb && !kLeanRemoteMode) record(context),
         if (!isWeb) WaylandCard(),
         other(),
         if (!bind.isIncomingOnly()) keyboardShortcuts(),
@@ -1025,9 +1026,11 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
               child: Column(children: [
                 permissions(context),
                 password(context),
-                _Card(title: '2FA', children: [tfa()]),
-                if (!isChangeIdDisabled())
-                  _Card(title: 'ID', children: [changeId()]),
+                if (!kLeanRemoteMode) ...[
+                  _Card(title: '2FA', children: [tfa()]),
+                  if (!isChangeIdDisabled())
+                    _Card(title: 'ID', children: [changeId()]),
+                ],
                 more(context),
               ]),
             ),
@@ -1216,29 +1219,31 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
             _OptionCheckBox(
                 context, 'Enable keyboard/mouse', kOptionEnableKeyboard,
                 enabled: enabled, fakeValue: fakeValue),
-            if (isWindows)
-              _OptionCheckBox(
-                  context, 'Enable remote printer', kOptionEnableRemotePrinter,
-                  enabled: enabled, fakeValue: fakeValue),
             _OptionCheckBox(context, 'Enable clipboard', kOptionEnableClipboard,
                 enabled: enabled, fakeValue: fakeValue),
             _OptionCheckBox(
                 context, 'Enable file transfer', kOptionEnableFileTransfer,
                 enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(context, 'Enable audio', kOptionEnableAudio,
-                enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(context, 'Enable camera', kOptionEnableCamera,
-                enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(context, 'Enable terminal', kOptionEnableTerminal,
-                enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(
-                context, 'Enable TCP tunneling', kOptionEnableTunnel,
-                enabled: enabled, fakeValue: fakeValue),
+            if (!kLeanRemoteMode) ...[
+              if (isWindows)
+                _OptionCheckBox(context, 'Enable remote printer',
+                    kOptionEnableRemotePrinter,
+                    enabled: enabled, fakeValue: fakeValue),
+              _OptionCheckBox(context, 'Enable audio', kOptionEnableAudio,
+                  enabled: enabled, fakeValue: fakeValue),
+              _OptionCheckBox(context, 'Enable camera', kOptionEnableCamera,
+                  enabled: enabled, fakeValue: fakeValue),
+              _OptionCheckBox(context, 'Enable terminal', kOptionEnableTerminal,
+                  enabled: enabled, fakeValue: fakeValue),
+              _OptionCheckBox(
+                  context, 'Enable TCP tunneling', kOptionEnableTunnel,
+                  enabled: enabled, fakeValue: fakeValue),
+              _OptionCheckBox(
+                  context, 'Enable recording session', kOptionEnableRecordSession,
+                  enabled: enabled, fakeValue: fakeValue),
+            ],
             _OptionCheckBox(
                 context, 'Enable remote restart', kOptionEnableRemoteRestart,
-                enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(
-                context, 'Enable recording session', kOptionEnableRecordSession,
                 enabled: enabled, fakeValue: fakeValue),
             if (isWindows)
               _OptionCheckBox(context, 'Enable blocking user input',
@@ -1248,9 +1253,11 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
               _OptionCheckBox(
                   context, 'Enable privacy mode', kOptionEnablePrivacyMode,
                   enabled: enabled, fakeValue: fakeValue),
-            _OptionCheckBox(context, 'Enable remote configuration modification',
-                kOptionAllowRemoteConfigModification,
-                enabled: enabled, fakeValue: fakeValue),
+            if (!kLeanRemoteMode)
+              _OptionCheckBox(
+                  context, 'Enable remote configuration modification',
+                  kOptionAllowRemoteConfigModification,
+                  enabled: enabled, fakeValue: fakeValue),
           ],
         ),
       ]);
@@ -1419,7 +1426,7 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
   Widget more(BuildContext context) {
     bool enabled = !locked;
     return _Card(title: 'Security', children: [
-      shareRdp(context, enabled),
+      if (!kLeanRemoteMode) shareRdp(context, enabled),
       _OptionCheckBox(context, 'Deny LAN discovery', 'enable-lan-discovery',
           reverse: true, enabled: enabled),
       ...directIp(context),

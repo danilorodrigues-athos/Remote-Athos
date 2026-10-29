@@ -13,6 +13,10 @@ const double kDesktopRemoteTabBarHeight = 28.0;
 const int kInvalidWindowId = -1;
 const int kMainWindowId = 0;
 
+/// NÓ: interface enxuta para acesso remoto.
+/// Recursos que não fazem parte do fluxo principal de suporte ficam ocultos.
+bool get kLeanRemoteMode => true;
+
 const kAllDisplayValue = -1;
 
 const kKeyLegacyMode = 'legacy';

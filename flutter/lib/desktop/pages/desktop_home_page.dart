@@ -519,6 +519,29 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                   ],
                 ),
               ),
+              const SizedBox(height: 14),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final local = ips.isNotEmpty
+                        ? '${ips.first}:${NetworkTools.directPort}'
+                        : 'não detectado';
+                    final password =
+                        passwd.isEmpty ? 'não configurada' : passwd;
+                    final text = [
+                      'NÓ - dados de acesso',
+                      'ID: $id',
+                      'Senha: $password',
+                      'IP local: $local',
+                    ].join('\n');
+                    Clipboard.setData(ClipboardData(text: text));
+                    showToast('Dados copiados');
+                  },
+                  icon: const Icon(Icons.copy_all_rounded, size: 18),
+                  label: const Text('Copiar dados de acesso'),
+                ),
+              ),
               const SizedBox(height: 18),
               Text(
                 'Leia o ID ou o endereço local para o técnico. A conexão por IP direto funciona mesmo sem internet.',
