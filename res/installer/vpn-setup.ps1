@@ -35,6 +35,7 @@ function Get-VerifiedDownload {
     )
 
     Write-Log "Baixando $Url"
+    Remove-Item -Path $Destination -Force -ErrorAction SilentlyContinue
     Invoke-WebRequest -Uri $Url -OutFile $Destination -UseBasicParsing -TimeoutSec 300
 
     $actualHash = (Get-FileHash -Path $Destination -Algorithm SHA256).Hash
