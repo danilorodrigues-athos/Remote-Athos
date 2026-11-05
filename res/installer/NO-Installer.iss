@@ -53,6 +53,10 @@ VersionInfoOriginalFileName=Instalar-NO.exe
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
+[Tasks]
+Name: "vpn_tailscale"; Description: "Instalar Tailscale (VPN para acesso remoto)"; Flags: unchecked
+Name: "vpn_radmin"; Description: "Instalar Radmin VPN (alternativa para acesso remoto)"; Flags: unchecked
+
 ; Remove resquícios do instalador PowerShell anterior, que criava atalhos e
 ; scripts auxiliares com nomes diferentes.
 [InstallDelete]
@@ -66,12 +70,15 @@ Root: HKLM32; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\NO"; 
 
 [Files]
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "vpn-setup.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
 Name: "{autoprograms}\NÓ"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
 Name: "{autodesktop}\NÓ"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
 
 [Run]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{tmp}\vpn-setup.ps1"" -Vendor Tailscale"; StatusMsg: "Instalando Tailscale..."; Flags: runhidden waituntilterminated; Tasks: vpn_tailscale
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{tmp}\vpn-setup.ps1"" -Vendor Radmin"; StatusMsg: "Instalando Radmin VPN..."; Flags: runhidden waituntilterminated; Tasks: vpn_radmin
 Filename: "{app}\{#MyAppExeName}"; Flags: nowait runasoriginaluser skipifsilent
 
 [UninstallRun]

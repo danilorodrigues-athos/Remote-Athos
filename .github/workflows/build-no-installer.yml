@@ -170,6 +170,18 @@ jobs:
             throw "Serviço NO não está em execução (status: $($svc.Status))."
           }
 
+          $listening = $false
+          for ($i = 0; $i -lt 15; $i++) {
+            if (Get-NetTCPConnection -LocalPort 21118 -State Listen -ErrorAction SilentlyContinue) {
+              $listening = $true
+              break
+            }
+            Start-Sleep -Seconds 1
+          }
+          if (-not $listening) {
+            throw 'O acesso por IP direto não abriu a porta 21118.'
+          }
+
           foreach ($name in @('NO 21118 TCP', 'NO 21118 UDP')) {
             if (-not (Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue)) {
               throw "Regra de firewall ausente: $name"

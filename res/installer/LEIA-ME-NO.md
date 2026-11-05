@@ -41,6 +41,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   para evitar conflito, use um IP fora da faixa DHCP ou faça uma reserva por
   MAC no roteador. O NÓ só detecta a VPN já conectada; criar ou entrar na rede
   continua sendo feito no aplicativo.
+- **Acesso por IP direto**: já vem ligado em uma instalação nova, para que a
+  porta 21118 esteja escutando sem depender do servidor público. Pode ser
+  desligado em **Configurações → Segurança → Habilitar Acesso IP Direto**.
 - **Conta local**: a aba **Conta** agora cria uma conta só nesta máquina —
   o nome fica em `%APPDATA%\NO` e a senha local é protegida com DPAPI.
   Não abre Google, GitHub ou Microsoft e não usa o cadastro do RustDesk.
@@ -66,7 +69,7 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
    - Se algo falhar, o instalador mostra o erro. O log fica em
      `%TEMP%\NO-install.log`.
 3. Abra o NÓ e confira no card **"Este dispositivo"**:
-   - **Serviço: Ativo** (se aparecer **Instalar**, clique e aceite o UAC).
+   - **Serviço: Em execução** (se aparecer **Ativar**, clique e aceite o UAC).
    - **Rede**: o instalador já criou as regras para Domínio, Particular e Público.
      Se aparecer **Pública**, é só o perfil da rede (comum em VPN); a porta 21118
      continua liberada. **Aplicar** recria as regras e não é obrigatório.
@@ -74,6 +77,39 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
 5. No painel **Rede local**, clique em **Fixar IP** para manter o endereço
    atual. Use um IP fora da faixa do DHCP do roteador; se preferir, faça uma
    **reserva DHCP por MAC** no roteador.
+
+## Instalação opcional das VPNs
+
+O assistente do `Instalar-NO.exe` mostra duas tarefas **desmarcadas**:
+
+- **Tailscale** — recomendado para acesso externo; crie uma tailnet e mantenha
+  a máquina controlada e o técnico na mesma rede.
+- **Radmin VPN** — alternativa quando o Tailscale não estiver disponível.
+
+As duas opções precisam de internet durante a instalação. O instalador baixa o
+pacote somente do site oficial, confere o SHA-256 fixado e a assinatura digital
+do fabricante antes de executar. Se o download ou a verificação falhar, o NÓ
+continua instalado e o motivo fica em `%TEMP%\NO-vpn-install.log`; o painel
+**Rede local** mostra a VPN como não instalada.
+
+A instalação não cria conta nem entra em nenhuma rede. Depois de instalar,
+abra o Tailscale e faça login, ou abra o Radmin VPN e entre/crie a rede. O NÓ
+detecta o IP da VPN já conectada. Reinicie o Windows se o instalador da VPN
+solicitar.
+
+Para instalar sem o assistente:
+
+```powershell
+# Tailscale
+.\Instalar-NO.exe /SILENT /TASKS="vpn_tailscale"
+
+# Radmin VPN
+.\Instalar-NO.exe /SILENT /TASKS="vpn_radmin"
+
+# As duas
+.\Instalar-NO.exe /SILENT /TASKS="vpn_tailscale,vpn_radmin"
+```
+
 
 > O ZIP portátil e os scripts `Instalar-NO.ps1`/`Instalar-NO.cmd` continuam
 > disponíveis como alternativa, mas o caminho recomendado é o `Instalar-NO.exe`.
@@ -148,6 +184,10 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - [ ] Janela abre com título **NÓ** e logo NÓ.
 - [ ] Ícone da janela/bandeja é o NÓ (não o arqueiro).
 - [ ] Card "Este dispositivo" mostra IP, serviço e rede.
+- [ ] Card Serviço mostra **Em execução**/**Parado** e o botão **Ativar**/**Desativar**.
+- [ ] Copiar dados de acesso usa o IP físico principal, não o IP de uma VPN.
+- [ ] Acesso por IP direto já vem ligado em uma instalação nova (porta 21118).
+- [ ] Instalador pergunta Tailscale/Radmin e instala a opção marcada.
 - [ ] Painel Rede local detecta Radmin e Tailscale, mostra o IP e permite fixar o IP.
 - [ ] Serviço instala e a máquina fica acessível após reiniciar.
 - [ ] Diagnóstico de rede aplica as regras do firewall.
@@ -172,10 +212,19 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 ## Se não conectar
 
 - Confira se a máquina controlada está **ligada** e com o **serviço** instalado.
+- O NÓ ativa o **acesso por IP direto** na primeira execução. Se estiver
+  desligado, abra **Configurações → Segurança** e marque
+  **Habilitar Acesso IP Direto**.
 - **Rede: Pública** não bloqueia: as regras do instalador valem para os três perfis.
   Se o botão **Aplicar** aparecer, ele recria as regras (aceite o UAC).
 - Confira a reserva de IP no roteador.
-- Teste a porta: `Test-NetConnection <IP> -Port 21118`.
+- Teste a porta no destino: `Test-NetConnection <IP> -Port 21118`.
+  - Se o **ping** responde mas a porta falha, o NÓ do destino não está
+    escutando: serviço parado/removido, aplicativo fechado ou acesso por IP
+    desativado.
+  - Se a porta responde, confira a senha e o ID/IP usado na conexão.
+- A mensagem **Failed to connect to ...** seguida da dica de rede significa que
+  a porta 21118 não aceitou a conexão. Corrija o destino antes de tentar de novo.
 
 ## Acesso remoto: sugestões de uso
 
@@ -206,6 +255,11 @@ automaticamente. Se você já cadastrou clientes no ATHOSDESK:
 - A conta local é um perfil salvo na máquina; para impedir o uso do NÓ por
   outra pessoa, proteja o acesso ao Windows e à pasta `%APPDATA%\NO`.
 - Use uma senha permanente forte por máquina.
+- O acesso por IP direto vem ligado por padrão para o suporte local. Se não
+  precisar dele, desmarque **Habilitar Acesso IP Direto** em
+  **Configurações → Segurança**.
 - **Nunca exponha a porta 21118 na internet.** Para acesso externo, use
   Radmin VPN ou Tailscale.
+- A instalação opcional das VPNs baixa apenas dos sites oficiais e verifica
+  hash e assinatura; ela não entra em redes nem cria contas automaticamente.
 - Acompanhe os patches de segurança do RustDesk upstream.
