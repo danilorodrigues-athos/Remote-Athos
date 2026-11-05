@@ -392,6 +392,9 @@ impl Client {
             Err(err) => {
                 let err_str = err.to_string();
                 if err_str.starts_with("Failed") {
+                    if hbb_common::is_ip_str(peer) || hbb_common::is_domain_port_str(peer) {
+                        bail!(err_str + ": network_error_tip");
+                    }
                     bail!(err_str + ": Please try later");
                 } else {
                     return Err(err);

@@ -131,6 +131,13 @@ pub fn global_init() -> bool {
         .write()
         .unwrap()
         .insert(keys::OPTION_HIDE_POWERED_BY_ME.to_owned(), "Y".to_owned());
+    // Direct IP is the primary remote-support path; a saved user option still
+    // overrides this default.
+    #[cfg(windows)]
+    hbb_common::config::DEFAULT_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_DIRECT_SERVER.to_owned(), "Y".to_owned());
     #[cfg(all(target_os = "linux", feature = "drm"))]
     crate::platform::linux::dispatch_wayland_display_probe();
     #[cfg(target_os = "linux")]

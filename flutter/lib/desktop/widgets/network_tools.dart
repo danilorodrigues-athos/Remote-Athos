@@ -116,6 +116,14 @@ Write-Output ('DHCP=' + $dhcp)
     );
   }
 
+  /// Primary physical LAN IPv4, falling back to the first non-loopback address.
+  static Future<String> primaryIPv4() async {
+    final info = await localIpInfo();
+    if (info != null && info.address.isNotEmpty) return info.address;
+    final ips = await localIPv4s();
+    return ips.isEmpty ? '' : ips.first;
+  }
+
   static Future<bool> fixLocalIp(LocalIpInfo info) =>
       _applyLocalIpMode(info, automatic: false);
 
@@ -244,6 +252,17 @@ if (\$p.ExitCode -ne 0) { exit \$p.ExitCode }
       "(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0",
     ]);
     return out.toLowerCase() == 'true';
+  }
+
+  /// Windows service state (`Running`, `Stopped`, ...), or empty when absent.
+  static Future<String> serviceState(String name) async {
+    if (!Platform.isWindows) return '';
+    final safe = name.replaceAll("'", "''");
+    return _run([
+      '-NoProfile',
+      '-Command',
+      "(Get-Service -Name '$safe' -ErrorAction SilentlyContinue).Status",
+    ]);
   }
 
   /// Whether an inbound firewall rule for the given display name exists.

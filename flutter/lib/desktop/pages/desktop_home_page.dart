@@ -460,10 +460,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     return Container(
       color: isDark ? const Color(0xFF111827) : const Color(0xFFF3F3F3),
       padding: const EdgeInsets.all(28),
-      child: FutureBuilder<List<String>>(
-        future: NetworkTools.localIPv4s(),
+      child: FutureBuilder<String>(
+        future: NetworkTools.primaryIPv4(),
         builder: (context, snapshot) {
-          final ips = snapshot.data ?? const <String>[];
+          final ip = snapshot.data ?? '';
           final id = gFFI.serverModel.serverId.text;
           final passwd = gFFI.serverModel.serverPasswd.text;
           return Column(
@@ -505,8 +505,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                     const SizedBox(height: 18),
                     _supportField(
                       'Endereço local',
-                      ips.isNotEmpty
-                          ? '${ips.first}:${NetworkTools.directPort}'
+                      ip.isNotEmpty
+                          ? '$ip:${NetworkTools.directPort}'
                           : 'não detectado',
                       Icons.lan_rounded,
                     ),
@@ -524,8 +524,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 alignment: Alignment.centerRight,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    final local = ips.isNotEmpty
-                        ? '${ips.first}:${NetworkTools.directPort}'
+                    final local = ip.isNotEmpty
+                        ? '$ip:${NetworkTools.directPort}'
                         : 'não detectado';
                     final password =
                         passwd.isEmpty ? 'não configurada' : passwd;
@@ -1666,8 +1666,9 @@ class _DeviceStatusCard extends StatefulWidget {
 }
 
 class _DeviceStatusCardState extends State<_DeviceStatusCard> {
-  List<String> _ips = const [];
-  bool _serviceInstalled = false;
+  String _ip = '';
+  bool _appInstalled = false;
+  String _serviceState = '';
   String _networkCategory = '';
   bool _portListening = false;
   Timer? _timer;
@@ -1686,14 +1687,17 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
   }
 
   Future<void> _refresh() async {
-    final ips = await NetworkTools.localIPv4s();
+    final ip = await NetworkTools.primaryIPv4();
     final installed = bind.mainIsInstalled();
+    final serviceState =
+        Platform.isWindows ? await NetworkTools.serviceState('NO') : '';
     final category = await NetworkTools.networkCategory();
     final listening = await NetworkTools.portListening(NetworkTools.directPort);
     if (!mounted) return;
     setState(() {
-      _ips = ips;
-      _serviceInstalled = installed;
+      _ip = ip;
+      _appInstalled = installed;
+      _serviceState = serviceState;
       _networkCategory = category;
       _portListening = listening;
     });
@@ -1705,8 +1709,31 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
     final muted =
         Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
     final isPublic = _networkCategory.toLowerCase() == 'public';
-    final address = _ips.isNotEmpty
-        ? '${_ips.first}:${NetworkTools.directPort}'
+    final isWindows = Platform.isWindows;
+    final serviceRunning = isWindows
+        ? _serviceState.toLowerCase() == 'running'
+        : _appInstalled;
+    final serviceValue = !_appInstalled
+        ? 'Não instalado'
+        : !isWindows
+            ? 'Ativo'
+            : serviceRunning
+                ? 'Em execução'
+                : _serviceState.isEmpty
+                    ? 'Serviço removido'
+                    : 'Parado';
+    final serviceColor = !_appInstalled
+        ? Colors.orange
+        : !isWindows || serviceRunning
+            ? Colors.green
+            : Colors.orange;
+    final showServiceButton = !isWindows || _appInstalled;
+    final serviceAction = isWindows ? !serviceRunning : !_appInstalled;
+    final serviceLabel = isWindows
+        ? (serviceRunning ? 'Desativar' : 'Ativar')
+        : (_appInstalled ? 'Desinstalar' : 'Instalar');
+    final address = _ip.isNotEmpty
+        ? '$_ip:${NetworkTools.directPort}'
         : 'não detectado';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1722,7 +1749,7 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
             value: address,
             trailing: InkWell(
               onTap: () {
-                if (_ips.isEmpty) return;
+                if (_ip.isEmpty) return;
                 Clipboard.setData(ClipboardData(text: address));
                 showToast(translate('Copied'));
               },
@@ -1736,21 +1763,24 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
           _row(
             icon: Icons.miscellaneous_services_rounded,
             label: 'Serviço',
-            value: _serviceInstalled ? 'Ativo' : 'Não instalado',
-            valueColor: _serviceInstalled ? Colors.green : Colors.orange,
-            trailing: TextButton(
-              onPressed: () async {
-                await start_service(!_serviceInstalled);
-                await _refresh();
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                minimumSize: const Size(0, 28),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: const TextStyle(fontSize: 11.5),
-              ),
-              child: Text(_serviceInstalled ? 'Desinstalar' : 'Instalar'),
-            ),
+            value: serviceValue,
+            valueColor: serviceColor,
+            trailing: !showServiceButton
+                ? null
+                : TextButton(
+                    onPressed: () async {
+                      await start_service(serviceAction);
+                      await Future.delayed(const Duration(milliseconds: 800));
+                      await _refresh();
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      minimumSize: const Size(0, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: const TextStyle(fontSize: 11.5),
+                    ),
+                    child: Text(serviceLabel),
+                  ),
           ),
           const SizedBox(height: 4),
           _row(
