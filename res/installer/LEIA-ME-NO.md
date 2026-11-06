@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build do app: commit `9cada26a5` (branch `master`).
+Build do app: commit `660aba5b2` (branch `master`), versão `1.5.2` (build 69).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -11,7 +11,14 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   câmera, terminal, túnel TCP, impressora remota, 2FA e troca de ID ficaram
   fora desses menus; atalhos avançados continuam em Configurações.
 - **Copiar dados de acesso**: no Modo suporte, o botão **Copiar dados de acesso**
-  copia ID, senha e IP local de uma vez para enviar ao técnico.
+  copia ID, senha, IP local e os IPs das VPNs conectadas (Tailscale e Radmin)
+  de uma vez para enviar ao técnico.
+- **Serviço do Windows**: o card **Serviço** permite **Iniciar** e **Parar** o
+  serviço com elevação (UAC). **Remover serviço** é uma ação separada, disponível
+  no menu de três pontos e com confirmação.
+- **Diagnóstico**: o card **Diagnóstico** verifica aplicativo, serviço, porta
+  21118, acesso por IP direto, regras de firewall, rede e VPNs, com opção de
+  copiar o relatório.
 - **Marca NÓ**: logo novo (N com nó e ondas), título da janela, ícone do app/bandeja
   e metadados do executável. Todo o nome ATHOS e o arqueiro foram removidos.
 - **Atualizações offline (L3)**: pasta compartilhada com `no-version.json`; o app
@@ -53,7 +60,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
   copyright, com a frase da marca NÓ no bloco azul.
 - **Escanear rede**: ignora os IPs da própria máquina e corrige o filtro de MAC.
 - Mantidos: catálogo de clientes, online/offline, hostname com auto-correção de IP,
-  histórico, senhas com DPAPI, modo suporte e diagnóstico de firewall.
+  histórico, senhas com DPAPI, modo suporte e diagnóstico na tela inicial.
+- **Versionamento**: esta versão é `1.5.2` (build 69), distinta do instalador
+  anterior `1.5.1` (build 68).
 
 ## Instalação recomendada (máquina controlada)
 
@@ -69,7 +78,9 @@ Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk
    - Se algo falhar, o instalador mostra o erro. O log fica em
      `%TEMP%\NO-install.log`.
 3. Abra o NÓ e confira no card **"Este dispositivo"**:
-   - **Serviço: Em execução** (se aparecer **Ativar**, clique e aceite o UAC).
+   - **Serviço: Em execução** (se aparecer **Iniciar**, clique e aceite o UAC).
+     **Parar** interrompe o serviço sem apagar a instalação; **Remover serviço**
+     fica no menu de três pontos e pede confirmação.
    - **Rede**: o instalador já criou as regras para Domínio, Particular e Público.
      Se aparecer **Pública**, é só o perfil da rede (comum em VPN); a porta 21118
      continua liberada. **Aplicar** recria as regras e não é obrigatório.
@@ -89,8 +100,9 @@ O assistente do `Instalar-NO.exe` mostra duas tarefas **desmarcadas**:
 As duas opções precisam de internet durante a instalação. O instalador baixa o
 pacote somente do site oficial, confere o SHA-256 fixado e a assinatura digital
 do fabricante antes de executar. Se o download ou a verificação falhar, o NÓ
-continua instalado e o motivo fica em `%TEMP%\NO-vpn-install.log`; o painel
-**Rede local** mostra a VPN como não instalada.
+continua instalado e o instalador mostra um aviso ao final. O motivo fica em
+`%TEMP%\NO-vpn-install.log`; o painel **Rede local** mostra a VPN como não
+instalada.
 
 A instalação não cria conta nem entra em nenhuma rede. Depois de instalar,
 abra o Tailscale e faça login, ou abra o Radmin VPN e entre/crie a rede. O NÓ

@@ -31,12 +31,12 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $version = (Get-Item $appExe).VersionInfo.FileVersion
 if ([string]::IsNullOrWhiteSpace($version)) {
-    $version = '1.5.1+0'
+    $version = '1.5.2+0'
 }
 $baseVersion = ($version -split '\+')[0]
 $buildNumber = if ($version -match '\+(\d+)') { $Matches[1] } else { '0' }
 if ($baseVersion -notmatch '^\d+\.\d+\.\d+$') {
-    $baseVersion = '1.5.1'
+    $baseVersion = '1.5.2'
 }
 if ($buildNumber -notmatch '^\d+$') {
     $buildNumber = '0'
