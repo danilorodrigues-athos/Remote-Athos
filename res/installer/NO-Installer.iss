@@ -2,10 +2,10 @@
 ; O payload é preparado pelo CI (NO.exe + DLLs + data) e passado em /DPayloadDir.
 #define MyAppName "NÓ - suporte remoto local"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.5.1"
+  #define MyAppVersion "1.5.2"
 #endif
 #ifndef MyAppBuild
-  #define MyAppBuild "68"
+  #define MyAppBuild "69"
 #endif
 #define MyAppPublisher "Purslane Tech Pte. Ltd."
 #define MyAppExeName "NO.exe"
@@ -77,8 +77,8 @@ Name: "{autoprograms}\NÓ"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app
 Name: "{autodesktop}\NÓ"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{tmp}\vpn-setup.ps1"" -Vendor Tailscale"; StatusMsg: "Instalando Tailscale..."; Flags: runhidden waituntilterminated; Tasks: vpn_tailscale
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{tmp}\vpn-setup.ps1"" -Vendor Radmin"; StatusMsg: "Instalando Radmin VPN..."; Flags: runhidden waituntilterminated; Tasks: vpn_radmin
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{tmp}\vpn-setup.ps1"" -Vendor Tailscale -StatusFile ""{tmp}\vpn-tailscale.status"""; StatusMsg: "Instalando Tailscale..."; Flags: runhidden waituntilterminated; Tasks: vpn_tailscale
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{tmp}\vpn-setup.ps1"" -Vendor Radmin -StatusFile ""{tmp}\vpn-radmin.status"""; StatusMsg: "Instalando Radmin VPN..."; Flags: runhidden waituntilterminated; Tasks: vpn_radmin
 Filename: "{app}\{#MyAppExeName}"; Flags: nowait runasoriginaluser skipifsilent
 
 [UninstallRun]
@@ -110,6 +110,15 @@ begin
     AddLog('Falha ao executar: ' + FileName + ' ' + Params);
 end;
 
+function VpnStatusFailed(const StatusFile: string): Boolean;
+var
+  Status: AnsiString;
+begin
+  Result := False;
+  if FileExists(StatusFile) and LoadStringFromFile(StatusFile, Status) then
+    Result := Trim(Status) <> 'OK';
+end;
+
 function InitializeSetup(): Boolean;
 begin
   InstallLog := GetEnv('TEMP');
@@ -124,6 +133,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   R: Integer;
   Exe: string;
+  Msg: string;
 begin
   if CurStep = ssInstall then
   begin
@@ -135,6 +145,11 @@ begin
   end
   else if CurStep = ssPostInstall then
   begin
+    if WizardIsTaskSelected('vpn_tailscale') then
+      SaveStringToFile(ExpandConstant('{tmp}\vpn-tailscale.status'), 'FAILED', False);
+    if WizardIsTaskSelected('vpn_radmin') then
+      SaveStringToFile(ExpandConstant('{tmp}\vpn-radmin.status'), 'FAILED', False);
+
     AddLog('Criando regras de firewall.');
     R := RunHidden(ExpandConstant('{sys}\netsh.exe'), 'advfirewall firewall delete rule name="NO 21118 TCP"', '');
     R := RunHidden(ExpandConstant('{sys}\netsh.exe'), 'advfirewall firewall add rule name="NO 21118 TCP" dir=in action=allow protocol=TCP localport=21118 profile=any', '');
@@ -167,5 +182,26 @@ begin
       end;
     end;
     AddLog('Instalação concluída.');
+  end
+  else if CurStep = ssDone then
+  begin
+    if not WizardSilent then
+    begin
+      Msg := '';
+      if VpnStatusFailed(ExpandConstant('{tmp}\vpn-tailscale.status')) then
+        Msg := 'Tailscale não foi instalado.';
+      if VpnStatusFailed(ExpandConstant('{tmp}\vpn-radmin.status')) then
+      begin
+        if Msg <> '' then
+          Msg := Msg + #13#10;
+        Msg := Msg + 'Radmin VPN não foi instalado.';
+      end;
+      if Msg <> '' then
+      begin
+        AddLog('Falha na instalação de VPN: ' + Msg);
+        MsgBox(Msg + #13#10 + #13#10 +
+          'O NÓ foi instalado normalmente. Consulte %TEMP%\NO-vpn-install.log para o motivo.', mbInformation, MB_OK);
+      end;
+    end;
   end;
 end;

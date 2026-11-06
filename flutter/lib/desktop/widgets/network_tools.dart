@@ -265,6 +265,26 @@ if (\$p.ExitCode -ne 0) { exit \$p.ExitCode }
     ]);
   }
 
+  /// Starts or stops a Windows service through UAC. Returns false when the
+  /// elevation prompt is cancelled or the command fails.
+  static Future<bool> setServiceRunning(String name, bool running) async {
+    if (!Platform.isWindows) return false;
+    try {
+      final safe = name.replaceAll("'", "''");
+      final verb = running ? 'start' : 'stop';
+      final command =
+          r'$p = Start-Process -FilePath "$env:SystemRoot\System32\sc.exe" -ArgumentList ' +
+              "'$verb','$safe' -Verb RunAs -Wait -PassThru -WindowStyle Hidden; exit \$p.ExitCode";
+      final encoded = _encodeUtf16Le(command);
+      final result = await Process.run(
+          'powershell', ['-NoProfile', '-EncodedCommand', encoded]);
+      return result.exitCode == 0;
+    } catch (e) {
+      debugPrint('setServiceRunning failed: $e');
+      return false;
+    }
+  }
+
   /// Whether an inbound firewall rule for the given display name exists.
   static Future<bool> firewallRuleExists(String displayName) async {
     if (!Platform.isWindows) return false;

@@ -1,7 +1,8 @@
 ﻿param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('Tailscale', 'Radmin')]
-    [string]$Vendor
+    [string]$Vendor,
+    [string]$StatusFile = ''
 )
 
 # Optional VPN installer used by NO-Installer.iss. It downloads only from the
@@ -16,6 +17,12 @@ $log = Join-Path $env:TEMP 'NO-vpn-install.log'
 function Write-Log([string]$Message) {
     $line = '{0:yyyy-MM-dd HH:mm:ss} [{1}] {2}' -f (Get-Date), $Vendor, $Message
     Add-Content -Path $log -Value $line -Encoding UTF8
+}
+
+function Set-Status([string]$Value) {
+    if ($StatusFile) {
+        Set-Content -Path $StatusFile -Value $Value -Encoding ASCII -ErrorAction SilentlyContinue
+    }
 }
 
 function Assert-Admin {
@@ -55,6 +62,7 @@ function Get-VerifiedDownload {
 }
 
 try {
+    Set-Status 'FAILED'
     Assert-Admin
     $workDir = Join-Path $env:TEMP 'NO-vpn-setup'
     New-Item -ItemType Directory -Force -Path $workDir | Out-Null
@@ -108,9 +116,11 @@ try {
 
     Remove-Item -Path $installer -Force -ErrorAction SilentlyContinue
     Write-Log 'Instalacao concluida.'
+    Set-Status 'OK'
     exit 0
 } catch {
     Write-Log "FALHA: $($_.Exception.Message)"
+    Set-Status 'FAILED'
     exit 1
 }
 

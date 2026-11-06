@@ -17,6 +17,7 @@ import 'package:flutter_hbb/desktop/widgets/client_catalog.dart';
 import 'package:flutter_hbb/desktop/widgets/network_tools.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/desktop/widgets/vpn_panel.dart';
+import 'package:flutter_hbb/desktop/widgets/vpn_tools.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -460,10 +461,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     return Container(
       color: isDark ? const Color(0xFF111827) : const Color(0xFFF3F3F3),
       padding: const EdgeInsets.all(28),
-      child: FutureBuilder<String>(
-        future: NetworkTools.primaryIPv4(),
+      child: FutureBuilder<_SupportAccess>(
+        future: _loadSupportAccess(),
         builder: (context, snapshot) {
-          final ip = snapshot.data ?? '';
+          final access = snapshot.data ?? _SupportAccess.empty;
+          final ip = access.localIp;
+          final connectedVpns = access.connectedVpns;
           final id = gFFI.serverModel.serverId.text;
           final passwd = gFFI.serverModel.serverPasswd.text;
           return Column(
@@ -511,6 +514,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       Icons.lan_rounded,
                     ),
                     const SizedBox(height: 18),
+                    for (final vpn in connectedVpns) ...[
+                      _supportField(
+                        vpn.name,
+                        '${vpn.primaryIp}:${NetworkTools.directPort}',
+                        Icons.vpn_lock_rounded,
+                      ),
+                      const SizedBox(height: 18),
+                    ],
                     _supportField(
                       'Senha temporária',
                       passwd.isEmpty ? 'não configurada' : passwd,
@@ -534,6 +545,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       'ID: $id',
                       'Senha: $password',
                       'IP local: $local',
+                      for (final vpn in connectedVpns)
+                        '${vpn.name}: ${vpn.primaryIp}:${NetworkTools.directPort}',
                     ].join('\n');
                     Clipboard.setData(ClipboardData(text: text));
                     showToast('Dados copiados');
@@ -552,6 +565,20 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         },
       ),
     );
+  }
+
+  Future<_SupportAccess> _loadSupportAccess() async {
+    final localIp = await NetworkTools.primaryIPv4();
+    var vpns = const <VpnStatus>[];
+    try {
+      vpns = await Future.wait([
+        VpnTools.tailscaleStatus(),
+        VpnTools.radminStatus(),
+      ]);
+    } catch (e) {
+      debugPrint('VPN detection failed: $e');
+    }
+    return _SupportAccess(localIp, vpns);
   }
 
   Widget _supportField(String label, String value, IconData icon) {
@@ -1703,6 +1730,46 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
     });
   }
 
+  Future<void> _installService() async {
+    await start_service(true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) await _refresh();
+  }
+
+  Future<void> _toggleService(bool run) async {
+    final ok = await NetworkTools.setServiceRunning('NO', run);
+    if (!ok) {
+      showToast('Não foi possível alterar o serviço. Aceite o UAC, se aparecer.');
+    }
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) await _refresh();
+  }
+
+  Future<void> _removeService() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remover serviço'),
+        content: const Text(
+            'O aplicativo continuará instalado, mas o acesso sem abrir o NÓ deixará de funcionar. Remover o serviço?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await start_service(false);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1710,6 +1777,8 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
         Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
     final isPublic = _networkCategory.toLowerCase() == 'public';
     final isWindows = Platform.isWindows;
+    final servicePending = isWindows &&
+        _serviceState.toLowerCase().contains('pending');
     final serviceRunning = isWindows
         ? _serviceState.toLowerCase() == 'running'
         : _appInstalled;
@@ -1717,21 +1786,91 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
         ? 'Não instalado'
         : !isWindows
             ? 'Ativo'
-            : serviceRunning
-                ? 'Em execução'
-                : _serviceState.isEmpty
-                    ? 'Serviço removido'
-                    : 'Parado';
+            : servicePending
+                ? 'Alterando...'
+                : serviceRunning
+                    ? 'Em execução'
+                    : _serviceState.isEmpty
+                        ? 'Serviço removido'
+                        : 'Parado';
     final serviceColor = !_appInstalled
         ? Colors.orange
         : !isWindows || serviceRunning
             ? Colors.green
             : Colors.orange;
     final showServiceButton = !isWindows || _appInstalled;
-    final serviceAction = isWindows ? !serviceRunning : !_appInstalled;
-    final serviceLabel = isWindows
-        ? (serviceRunning ? 'Desativar' : 'Ativar')
-        : (_appInstalled ? 'Desinstalar' : 'Instalar');
+    Widget? serviceTrailing;
+    if (showServiceButton) {
+      if (!isWindows) {
+        serviceTrailing = TextButton(
+          onPressed: () async {
+            await start_service(!_appInstalled);
+            await Future.delayed(const Duration(milliseconds: 800));
+            await _refresh();
+          },
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            minimumSize: const Size(0, 28),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: const TextStyle(fontSize: 11.5),
+          ),
+          child: Text(_appInstalled ? 'Desinstalar' : 'Instalar'),
+        );
+      } else if (_serviceState.isEmpty) {
+        serviceTrailing = TextButton(
+          onPressed: _installService,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            minimumSize: const Size(0, 28),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: const TextStyle(fontSize: 11.5),
+          ),
+          child: const Text('Instalar'),
+        );
+      } else {
+        serviceTrailing = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              onPressed: servicePending
+                  ? null
+                  : () => _toggleService(!serviceRunning),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(fontSize: 11.5),
+              ),
+              child: Text(servicePending
+                  ? 'Aguarde'
+                  : serviceRunning
+                      ? 'Parar'
+                      : 'Iniciar'),
+            ),
+            SizedBox(
+              width: 24,
+              height: 28,
+              child: PopupMenuButton<String>(
+                tooltip: 'Mais ações do serviço',
+                padding: EdgeInsets.zero,
+                iconSize: 16,
+                icon: const Icon(Icons.more_vert_rounded),
+                onSelected: (value) {
+                  if (value == 'remove') _removeService();
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem<String>(
+                    value: 'remove',
+                    enabled: !servicePending,
+                    child: const Text('Remover serviço'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      }
+    }
     final address = _ip.isNotEmpty
         ? '$_ip:${NetworkTools.directPort}'
         : 'não detectado';
@@ -1765,22 +1904,7 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
             label: 'Serviço',
             value: serviceValue,
             valueColor: serviceColor,
-            trailing: !showServiceButton
-                ? null
-                : TextButton(
-                    onPressed: () async {
-                      await start_service(serviceAction);
-                      await Future.delayed(const Duration(milliseconds: 800));
-                      await _refresh();
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      minimumSize: const Size(0, 28),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: const TextStyle(fontSize: 11.5),
-                    ),
-                    child: Text(serviceLabel),
-                  ),
+            trailing: serviceTrailing,
           ),
           const SizedBox(height: 4),
           _row(
@@ -1807,8 +1931,283 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
               child: Text('Aplicar'),
             ),
           ),
+          const SizedBox(height: 4),
+          _row(
+            icon: Icons.troubleshoot_rounded,
+            label: 'Diagnóstico',
+            value: 'Serviço, porta, firewall e VPN',
+            trailing: TextButton(
+              onPressed: _openDiagnostics,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(fontSize: 11.5),
+              ),
+              child: const Text('Abrir'),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  void _openDiagnostics() {
+    final future = _collectDiagnostics();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => FutureBuilder<List<_DiagnosticItem>>(
+        future: future,
+        builder: (context, snapshot) {
+          final items = snapshot.data ?? const <_DiagnosticItem>[];
+          final ready = items
+              .where((item) => item.isRequired)
+              .every((item) => item.ok);
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.troubleshoot_rounded, color: MyTheme.accent, size: 22),
+                const SizedBox(width: 10),
+                const Text('Diagnóstico do dispositivo'),
+              ],
+            ),
+            content: SizedBox(
+              width: 520,
+              child: snapshot.connectionState != ConnectionState.done
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 28),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : snapshot.hasError
+                      ? Text(
+                          'Não foi possível concluir o diagnóstico: ${snapshot.error}')
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              ready
+                                  ? 'Tudo pronto para acesso local.'
+                                  : 'Há pontos para revisar.',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: ready ? Colors.green : Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            for (final item in items)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      item.ok
+                                          ? Icons.check_circle_rounded
+                                          : item.isRequired
+                                              ? Icons.error_rounded
+                                              : Icons.warning_amber_rounded,
+                                      size: 18,
+                                      color: item.ok
+                                          ? Colors.green
+                                          : item.isRequired
+                                              ? Colors.red
+                                              : Colors.orange,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.label,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          Text(
+                                            item.value,
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Itens em laranja são informativos.',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+            ),
+            actions: [
+              TextButton.icon(
+                onPressed: items.isEmpty
+                    ? null
+                    : () {
+                        Clipboard.setData(
+                            ClipboardData(text: _diagnosticReport(items)));
+                        showToast('Relatório copiado');
+                      },
+                icon: const Icon(Icons.copy_rounded, size: 17),
+                label: const Text('Copiar relatório'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Fechar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _diagnosticReport(List<_DiagnosticItem> items) {
+    final lines = <String>['NÓ - diagnóstico'];
+    for (final item in items) {
+      final status = item.ok
+          ? '[OK]'
+          : item.isRequired
+              ? '[FALHA]'
+              : '[AVISO]';
+      lines.add('$status ${item.label}: ${item.value}');
+    }
+    return lines.join('\n');
+  }
+
+  Future<List<_DiagnosticItem>> _collectDiagnostics() async {
+    try {
+      return await _diagnosticItems();
+    } catch (e) {
+      return [
+        _DiagnosticItem(
+          label: 'Diagnóstico',
+          value: 'Falha ao verificar: $e',
+          ok: false,
+        ),
+      ];
+    }
+  }
+
+  Future<List<_DiagnosticItem>> _diagnosticItems() async {
+    final ip = await NetworkTools.primaryIPv4();
+    final installed = bind.mainIsInstalled();
+    var vpns = const <VpnStatus>[];
+    try {
+      vpns = await Future.wait([
+        VpnTools.tailscaleStatus(),
+        VpnTools.radminStatus(),
+      ]);
+    } catch (e) {
+      debugPrint('VPN diagnostic detection failed: $e');
+    }
+
+    if (!Platform.isWindows) {
+      final items = <_DiagnosticItem>[
+        const _DiagnosticItem(
+          label: 'Sistema',
+          value: 'Diagnóstico detalhado disponível no Windows',
+          ok: false,
+          isRequired: false,
+        ),
+        _DiagnosticItem(
+          label: 'IP local',
+          value: ip.isEmpty ? 'Não detectado' : ip,
+          ok: ip.isNotEmpty,
+          isRequired: false,
+        ),
+      ];
+      items.addAll(vpns.map(_vpnDiagnostic));
+      return items;
+    }
+
+    final service = await NetworkTools.serviceState('NO');
+    final category = await NetworkTools.networkCategory();
+    final listening = await NetworkTools.portListening(NetworkTools.directPort);
+    final firewallTcp =
+        await NetworkTools.firewallRuleExists('NO 21118 TCP');
+    final firewallUdp =
+        await NetworkTools.firewallRuleExists('NO 21118 UDP');
+    final directIp = await mainGetBoolOption(kOptionDirectServer);
+    final serviceRunning = service.toLowerCase() == 'running';
+    final isPublic = category.toLowerCase() == 'public';
+    final networkLabel = category.isEmpty
+        ? 'Desconhecida'
+        : isPublic
+            ? 'Pública'
+            : category.toLowerCase() == 'private'
+                ? 'Privada'
+                : category;
+    final items = <_DiagnosticItem>[
+      _DiagnosticItem(
+        label: 'Aplicativo',
+        value: installed ? 'Instalado' : 'Não instalado',
+        ok: installed,
+      ),
+      _DiagnosticItem(
+        label: 'Serviço do Windows',
+        value: !installed
+            ? 'Aplicativo não instalado'
+            : service.isEmpty
+                ? 'Serviço removido'
+                : serviceRunning
+                    ? 'Em execução'
+                    : 'Parado',
+        ok: installed && serviceRunning,
+      ),
+      _DiagnosticItem(
+        label: 'Porta 21118',
+        value: listening ? 'Escutando' : 'Fechada',
+        ok: listening,
+      ),
+      _DiagnosticItem(
+        label: 'Acesso por IP direto',
+        value: directIp ? 'Habilitado' : 'Desabilitado',
+        ok: directIp,
+      ),
+      _DiagnosticItem(
+        label: 'Firewall TCP',
+        value: firewallTcp ? 'Regra encontrada' : 'Regra ausente',
+        ok: firewallTcp,
+      ),
+      _DiagnosticItem(
+        label: 'Firewall UDP',
+        value: firewallUdp ? 'Regra encontrada' : 'Regra ausente',
+        ok: firewallUdp,
+      ),
+      _DiagnosticItem(
+        label: 'Rede',
+        value: networkLabel,
+        ok: category.isNotEmpty && !isPublic,
+        isRequired: false,
+      ),
+      _DiagnosticItem(
+        label: 'IP local',
+        value: ip.isEmpty
+            ? 'Não detectado'
+            : '$ip:${NetworkTools.directPort}',
+        ok: ip.isNotEmpty,
+      ),
+    ];
+    items.addAll(vpns.map(_vpnDiagnostic));
+    return items;
+  }
+
+  _DiagnosticItem _vpnDiagnostic(VpnStatus vpn) {
+    final address =
+        vpn.primaryIp.isEmpty ? '' : ' (${vpn.primaryIp}:${NetworkTools.directPort})';
+    return _DiagnosticItem(
+      label: vpn.name,
+      value: '${vpn.detail}$address',
+      ok: vpn.connected,
+      isRequired: false,
     );
   }
 
@@ -1847,4 +2246,31 @@ class _DeviceStatusCardState extends State<_DeviceStatusCard> {
       ],
     );
   }
+}
+
+class _SupportAccess {
+  const _SupportAccess(this.localIp, this.vpns);
+
+  static const empty = _SupportAccess('', <VpnStatus>[]);
+
+  final String localIp;
+  final List<VpnStatus> vpns;
+
+  List<VpnStatus> get connectedVpns => vpns
+      .where((vpn) => vpn.connected && vpn.primaryIp.isNotEmpty)
+      .toList(growable: false);
+}
+
+class _DiagnosticItem {
+  const _DiagnosticItem({
+    required this.label,
+    required this.value,
+    required this.ok,
+    this.isRequired = true,
+  });
+
+  final String label;
+  final String value;
+  final bool ok;
+  final bool isRequired;
 }
