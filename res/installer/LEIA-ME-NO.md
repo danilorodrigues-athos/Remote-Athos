@@ -1,6 +1,6 @@
 # NÓ — suporte local (rede interna, com ou sem internet)
 
-Build do app: commit `4da87bfa3` (branch `master`).
+Build do app: commit `9cada26a5` (branch `master`).
 Executável: `NO.exe`. Perfil em `%APPDATA%\NO` — não conflita com o RustDesk instalado.
 
 ## O que mudou neste build
@@ -118,8 +118,8 @@ Para instalar sem o assistente:
 
 1. Execute `NO.exe`.
 2. No aviso do Windows, use **Mais informações → Executar assim mesmo**.
-3. Para acesso sem abrir o app, clique em **Serviço → Instalar**.
-   - O serviço aponta para a pasta atual; não mova a pasta depois de instalar.
+3. O modo portátil não instala o serviço do Windows. Para acesso sem abrir o
+   app, use o **Instalar-NO.exe** (caminho recomendado).
 
 ## Desinstalação
 
